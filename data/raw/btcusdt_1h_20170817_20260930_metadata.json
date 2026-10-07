@@ -1,0 +1,12 @@
+{
+  "symbol": "BTCUSDT",
+  "interval": "1h",
+  "requested_start": "2017-08-17T00:00:00+00:00",
+  "requested_end": "2026-09-30T23:00:00+00:00",
+  "first_open_time": "2017-08-17T04:00:00+00:00",
+  "last_open_time": "2026-09-30T23:00:00+00:00",
+  "row_count": 79836,
+  "collected_at": "2026-10-06T21:37:23+00:00",
+  "source": "Binance REST /api/v3/klines via python-binance",
+  "python_binance_version": "1.0.37"
+}
