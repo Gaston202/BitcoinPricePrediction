@@ -4,8 +4,10 @@ An ML model trained on historical Binance OHLCV data predicts the direction of B
 An AI agent combines those predictions with news sentiment and market indicators to make
 allocation decisions, and the strategy is evaluated through a historical backtest.
 
-The project follows **CRISP-DM**. Current status: **Phases 1-4 are complete** (Business Understanding,
-Data Understanding incl. EDA, Data Preparation / Feature Engineering, and Modeling). Next: Evaluation.
+The project follows **CRISP-DM**. Current status: **Phases 1-5 are complete** (Business Understanding,
+Data Understanding incl. EDA, Data Preparation / Feature Engineering, Modeling, and Evaluation). The model
+did **not** clear the data-mining success criterion; see "Evaluation" below before assuming this is
+deployment-ready.
 
 
 ## Quick start
@@ -46,12 +48,14 @@ docs/
   02_data_understanding.md       data quality and EDA findings
   04_data_preparation.md         label, features, chronological split, test-window regime
   05_modeling.md                 candidate models, val/test results, business-read caveat
+  06_evaluation.md               formal check against the Phase 1 success criteria, go/no-go verdict
 notebooks/
   01_data_collection.ipynb       source, metadata, data dictionary
   02_data_quality.ipynb          gaps, gap policy, resampling (EDA item 1)
   03_eda.ipynb                   returns, normality, stationarity, ACF, correlation, target, baselines
   04_feature_engineering.ipynb   label, features, chronological split, processed parquet output
   05_modeling.ipynb              model selection, test evaluation, strategy backtest vs. buy-and-hold
+  06_evaluation.ipynb            data-mining and business success criteria checked against docs/01
 reports/figures/                 PNGs exported by the notebooks for the report
 src/
   config.py                      all constants (symbol, dates, gap threshold, fees)
@@ -61,6 +65,7 @@ src/
   features/engineering.py        lagged returns, volatility, ATR, volume features, chronological split
   evaluation/baselines.py        majority, persistence, buy-and-hold metrics
   evaluation/strategy.py         predicted-label -> position backtest vs. buy-and-hold
+  evaluation/criteria.py         formal yes/no checks against the docs/01 success criteria
   modeling/train.py              candidate classifiers, feature/label split, evaluation
   visualization/style.py         shared chart style
 tests/                           pytest suite
@@ -104,7 +109,18 @@ time against an actual 45% flat rate — i.e. sitting out of a bear market, not 
 
 Details: [`docs/05_modeling.md`](docs/05_modeling.md).
 
-## Next phase: Evaluation
+## Evaluation
 
-Decide, given the honest modeling result above, whether to proceed to the full agent (news sentiment +
-market indicators) with this as the ML leg's baseline, or iterate on the label/features first.
+Checked against the two criteria fixed in advance in `docs/01_business_understanding.md`:
+
+| Criterion | Status |
+|---|---|
+| Data-mining success (beat both baselines on macro-F1 **and** ROC-AUC) | **Not met** — wins on ROC-AUC (0.58 vs. 0.52/0.50), loses to persistence on macro-F1 |
+| Business success (beat buy-and-hold on Sharpe, net of fees) | **Technically met**, but driven by the model sitting in cash ~89% of the time during a bear-market test window, not demonstrated skill |
+
+**Recommendation: not ready for Deployment (Phase 6) as-is.** A business-criterion pass on a single
+bear-market window is exactly the false positive flagged as a risk in `docs/01`. Next: re-test across a
+bull and a range-bound window, and address the AUC/F1 mismatch (likely a decision-threshold/calibration
+issue) before feeding this into the full agent.
+
+Details: [`docs/06_evaluation.md`](docs/06_evaluation.md).
