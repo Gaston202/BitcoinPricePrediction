@@ -4,7 +4,8 @@ An ML model trained on historical Binance OHLCV data predicts the direction of B
 An AI agent combines those predictions with news sentiment and market indicators to make
 allocation decisions, and the strategy is evaluated through a historical backtest.
 
-The project follows **CRISP-DM**. Current status: **Phases 1-3 (Business Understanding, Data Understanding, EDA) and Phase 4 (Data Preparation / Feature Engineering) are complete.** Next: Modeling.
+The project follows **CRISP-DM**. Current status: **Phases 1-4 are complete** (Business Understanding,
+Data Understanding incl. EDA, Data Preparation / Feature Engineering, and Modeling). Next: Evaluation.
 
 
 ## Quick start
@@ -44,11 +45,13 @@ docs/
   01_business_understanding.md   objectives, success criteria, decisions log
   02_data_understanding.md       data quality and EDA findings
   04_data_preparation.md         label, features, chronological split, test-window regime
+  05_modeling.md                 candidate models, val/test results, business-read caveat
 notebooks/
   01_data_collection.ipynb       source, metadata, data dictionary
   02_data_quality.ipynb          gaps, gap policy, resampling (EDA item 1)
   03_eda.ipynb                   returns, normality, stationarity, ACF, correlation, target, baselines
   04_feature_engineering.ipynb   label, features, chronological split, processed parquet output
+  05_modeling.ipynb              model selection, test evaluation, strategy backtest vs. buy-and-hold
 reports/figures/                 PNGs exported by the notebooks for the report
 src/
   config.py                      all constants (symbol, dates, gap threshold, fees)
@@ -57,6 +60,8 @@ src/
   features/returns.py            log returns, resampling, 3-class labels
   features/engineering.py        lagged returns, volatility, ATR, volume features, chronological split
   evaluation/baselines.py        majority, persistence, buy-and-hold metrics
+  evaluation/strategy.py         predicted-label -> position backtest vs. buy-and-hold
+  modeling/train.py              candidate classifiers, feature/label split, evaluation
   visualization/style.py         shared chart style
 tests/                           pytest suite
 ```
@@ -89,7 +94,17 @@ backtest should be read.
 
 Details: [`docs/04_data_preparation.md`](docs/04_data_preparation.md).
 
-## Next phase: Modeling
+## Modeling
 
-Train a classifier on `data/processed/btcusdt_1D_train.parquet`, tune on `val`, and hold `test` untouched
-until the final evaluation against the baselines from `03_eda.ipynb` (majority, persistence, buy-and-hold).
+Three classifiers (logistic regression, random forest, gradient boosting) trained on `train` and selected
+on `val`. **None beat the persistence baseline on macro-F1** — consistent with the EDA finding that 1D
+direction carries little learnable signal from price/volume features alone. The selected model's test-window
+backtest does outperform buy-and-hold (+9.5% vs. −24.9% return), but mostly by predicting "flat" 89% of the
+time against an actual 45% flat rate — i.e. sitting out of a bear market, not genuine directional skill.
+
+Details: [`docs/05_modeling.md`](docs/05_modeling.md).
+
+## Next phase: Evaluation
+
+Decide, given the honest modeling result above, whether to proceed to the full agent (news sentiment +
+market indicators) with this as the ML leg's baseline, or iterate on the label/features first.
