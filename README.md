@@ -4,7 +4,7 @@ An ML model trained on historical Binance OHLCV data predicts the direction of B
 An AI agent combines those predictions with news sentiment and market indicators to make
 allocation decisions, and the strategy is evaluated through a historical backtest.
 
-The project follows **CRISP-DM**. Current status: **Phase 1 (Business Understanding) and Phase 2 (Data Understanding) are complete.**
+The project follows **CRISP-DM**. Current status: **Phases 1-3 (Business Understanding, Data Understanding, EDA) and Phase 4 (Data Preparation / Feature Engineering) are complete.** Next: Modeling.
 
 
 ## Quick start
@@ -39,20 +39,23 @@ No API key is needed. If you get **HTTP 451** (location blocked), use Binance's 
 data/
   raw/          frozen Binance snapshot (immutable, committed)
   interim/      cleaned 1h / 4h / 1D data (generated, gitignored)
-  processed/    model-ready features (next phase, gitignored)
+  processed/    model-ready features and train/val/test splits (generated, gitignored)
 docs/
   01_business_understanding.md   objectives, success criteria, decisions log
   02_data_understanding.md       data quality and EDA findings
+  04_data_preparation.md         label, features, chronological split, test-window regime
 notebooks/
   01_data_collection.ipynb       source, metadata, data dictionary
   02_data_quality.ipynb          gaps, gap policy, resampling (EDA item 1)
   03_eda.ipynb                   returns, normality, stationarity, ACF, correlation, target, baselines
+  04_feature_engineering.ipynb   label, features, chronological split, processed parquet output
 reports/figures/                 PNGs exported by the notebooks for the report
 src/
   config.py                      all constants (symbol, dates, gap threshold, fees)
   data/collect.py                Binance REST collector (pagination, retries, 451 fallback)
   data/clean.py                  quality report and gap policy
   features/returns.py            log returns, resampling, 3-class labels
+  features/engineering.py        lagged returns, volatility, ATR, volume features, chronological split
   evaluation/baselines.py        majority, persistence, buy-and-hold metrics
   visualization/style.py         shared chart style
 tests/                           pytest suite
@@ -77,7 +80,16 @@ tests/                           pytest suite
 
 Details: [`docs/02_data_understanding.md`](docs/02_data_understanding.md).
 
-## Next phase: Data Preparation
+## Data Preparation
 
-Confirm the label, define the chronological train/validation/test split, and engineer the features
-(lagged returns, volatility, volume, taker-buy ratio).
+Label confirmed (1D direction, θ = 1%), features engineered (lagged returns, volatility/ATR, volume,
+taker-buy ratio), and a chronological, purged train/validation/test split applied. The test window
+(2025-07 → 2026-09) is a bear market (buy-and-hold Sharpe ≈ −0.33), which matters for how the final
+backtest should be read.
+
+Details: [`docs/04_data_preparation.md`](docs/04_data_preparation.md).
+
+## Next phase: Modeling
+
+Train a classifier on `data/processed/btcusdt_1D_train.parquet`, tune on `val`, and hold `test` untouched
+until the final evaluation against the baselines from `03_eda.ipynb` (majority, persistence, buy-and-hold).
