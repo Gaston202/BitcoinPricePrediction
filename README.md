@@ -5,9 +5,9 @@ An AI agent combines those predictions with news sentiment and market indicators
 allocation decisions, and the strategy is evaluated through a historical backtest.
 
 The project follows **CRISP-DM**. Current status: **Phases 1-5 are complete** (Business Understanding,
-Data Understanding incl. EDA, Data Preparation / Feature Engineering, Modeling, and Evaluation). The model
-did **not** clear the data-mining success criterion; see "Evaluation" below before assuming this is
-deployment-ready.
+Data Understanding incl. EDA, Data Preparation / Feature Engineering, Modeling, and Evaluation), plus one
+modeling iteration. The model has **not** cleared the success criteria across multiple regimes — see
+"Evaluation" and "Modeling Iteration" below before assuming this is deployment-ready.
 
 
 ## Quick start
@@ -49,6 +49,7 @@ docs/
   04_data_preparation.md         label, features, chronological split, test-window regime
   05_modeling.md                 candidate models, val/test results, business-read caveat
   06_evaluation.md               formal check against the Phase 1 success criteria, go/no-go verdict
+  07_modeling_iteration.md       calibration fix + multi-regime walk-forward, revised verdict
 notebooks/
   01_data_collection.ipynb       source, metadata, data dictionary
   02_data_quality.ipynb          gaps, gap policy, resampling (EDA item 1)
@@ -56,6 +57,7 @@ notebooks/
   04_feature_engineering.ipynb   label, features, chronological split, processed parquet output
   05_modeling.ipynb              model selection, test evaluation, strategy backtest vs. buy-and-hold
   06_evaluation.ipynb            data-mining and business success criteria checked against docs/01
+  07_modeling_iteration.ipynb    calibrated threshold + walk-forward test across bear/bull/range regimes
 reports/figures/                 PNGs exported by the notebooks for the report
 src/
   config.py                      all constants (symbol, dates, gap threshold, fees)
@@ -66,7 +68,8 @@ src/
   evaluation/baselines.py        majority, persistence, buy-and-hold metrics
   evaluation/strategy.py         predicted-label -> position backtest vs. buy-and-hold
   evaluation/criteria.py         formal yes/no checks against the docs/01 success criteria
-  modeling/train.py              candidate classifiers, feature/label split, evaluation
+  modeling/train.py              candidate classifiers, feature/label split, evaluation,
+                                  calibrated decision-threshold tuning
   visualization/style.py         shared chart style
 tests/                           pytest suite
 ```
@@ -124,3 +127,22 @@ bull and a range-bound window, and address the AUC/F1 mismatch (likely a decisio
 issue) before feeding this into the full agent.
 
 Details: [`docs/06_evaluation.md`](docs/06_evaluation.md).
+
+## Modeling Iteration
+
+Both issues above were addressed directly — and neither turned out to be fixable this way:
+
+* **Calibrated decision threshold** (`tune_class_weights`/`weighted_predict`, tuned on validation only):
+  closes the macro-F1 gap in the original window only (1 of 4 tested windows) — not a reliable fix.
+* **Walk-forward test across regimes** (2022 bear, 2023 bull, 2025 range, plus the original window, all
+  retrained fresh per window): the earlier business-criterion "win" **disappears** once the model is
+  forced to take more directional positions — the original window now *underperforms* buy-and-hold
+  (Sharpe −0.59 vs −0.33). Across regimes the strategy wins in bear/range markets but **loses badly in the
+  bull-market window** (2023: strategy −27.7% vs. buy-and-hold +154.0%).
+
+**Still not ready for Deployment.** This is a stronger confirmation of the EDA's original warning than
+the first-pass Phase 4/5 result suggested: price/volume features alone do not produce a regime-robust
+directional edge. The project's own design already treats the ML model as one input to an agent that also
+uses news sentiment and market indicators — this result suggests those are not optional extras.
+
+Details: [`docs/07_modeling_iteration.md`](docs/07_modeling_iteration.md).
