@@ -6,7 +6,6 @@ allocation decisions, and the strategy is evaluated through a historical backtes
 
 The project follows **CRISP-DM**. Current status: **Phase 1 (Business Understanding) and Phase 2 (Data Understanding) are complete.**
 
-**Team:** Ghassen Siala · Baya Chabbene · Amine Neffati · Marwen Wali · Mohamed Aziz Souissi
 
 ## Quick start
 
