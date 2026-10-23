@@ -1,5 +1,6 @@
 # AI-Driven Bitcoin Portfolio Simulation System
 
+The project aims to predict cryptocurrency price movements; **Bitcoin (BTCUSDT) is the case study**.
 An ML model trained on historical Binance OHLCV data predicts the direction of Bitcoin's next price move.
 An AI agent combines those predictions with news sentiment and market indicators to make
 allocation decisions, and the strategy is evaluated through a historical backtest.
@@ -16,15 +17,23 @@ Requires Python ≥ 3.11.
 
 ```bash
 python -m venv .venv
-source .venv/Scripts/activate      # Git Bash on Windows  (macOS/Linux: source .venv/bin/activate)
+source .venv/bin/activate           # Windows (Git Bash): source .venv/Scripts/activate
 pip install -r requirements.txt
 
-pytest                              # 14 tests: gap policy, resampling, labels, baselines
-jupyter notebook notebooks/         # run 01 → 02 → 03 in order
+pytest                              # unit tests: gap policy, outliers, resampling, labels, features, baselines
+jupyter notebook notebooks/         # run the notebooks in order, 01 → 07
 ```
 
 The raw data snapshot is already in `data/raw/`, so **you do not need to download anything**.
-Notebook 02 regenerates the cleaned files in `data/interim/`.
+Notebook 02 regenerates the cleaned files in `data/interim/`, and notebook 04 the model-ready files in
+`data/processed/`, so run them before the later notebooks. To rerun everything headless:
+
+```bash
+for nb in notebooks/0*.ipynb; do jupyter nbconvert --to notebook --execute --inplace "$nb"; done
+```
+
+**Midterm scope** (CRISP-DM Business Understanding → Feature Engineering): notebooks 01–04 and
+`docs/01`, `02`, `04`, `08`.
 
 ### Re-collecting data (optional)
 
@@ -50,11 +59,13 @@ docs/
   05_modeling.md                 candidate models, val/test results, business-read caveat
   06_evaluation.md               formal check against the Phase 1 success criteria, go/no-go verdict
   07_modeling_iteration.md       calibration fix + multi-regime walk-forward, revised verdict
+  08_conclusions.md              research questions answered, limitations, future work (midterm scope)
 notebooks/
   01_data_collection.ipynb       source, metadata, data dictionary
-  02_data_quality.ipynb          gaps, gap policy, resampling (EDA item 1)
-  03_eda.ipynb                   returns, normality, stationarity, ACF, correlation, target, baselines
-  04_feature_engineering.ipynb   label, features, chronological split, processed parquet output
+  02_data_quality.ipynb          gaps, gap policy, outliers, resampling (EDA items 1, 5)
+  03_eda.ipynb                   returns, normality, stationarity, ACF, correlation, target, baselines,
+                                  Mann-Whitney test (volume vs. next-move size)
+  04_feature_engineering.ipynb   label, split, candidates, feature selection, PCA, processed output
   05_modeling.ipynb              model selection, test evaluation, strategy backtest vs. buy-and-hold
   06_evaluation.ipynb            data-mining and business success criteria checked against docs/01
   07_modeling_iteration.ipynb    calibrated threshold + walk-forward test across bear/bull/range regimes
@@ -62,9 +73,11 @@ reports/figures/                 PNGs exported by the notebooks for the report
 src/
   config.py                      all constants (symbol, dates, gap threshold, fees)
   data/collect.py                Binance REST collector (pagination, retries, 451 fallback)
-  data/clean.py                  quality report and gap policy
+  data/clean.py                  quality report, gap policy, robust outlier flags
   features/returns.py            log returns, resampling, 3-class labels
-  features/engineering.py        lagged returns, volatility, ATR, volume features, chronological split
+  features/engineering.py        candidate features (lags, momentum, volatility, trend, volume, calendar,
+                                  interactions), chronological split
+  features/selection.py          train-only feature selection (ANOVA, MI, correlation) and PCA
   evaluation/baselines.py        majority, persistence, buy-and-hold metrics
   evaluation/strategy.py         predicted-label -> position backtest vs. buy-and-hold
   evaluation/criteria.py         formal yes/no checks against the docs/01 success criteria
@@ -86,6 +99,9 @@ tests/                           pytest suite
 ## Key EDA findings
 
 * Returns have **fat tails** (excess kurtosis 16–37) and are **stationary**. Prices are not.
+* 49 extreme days (robust z-score > 5, e.g. the COVID crash) are real market events and are **kept**.
+* High-activity days are followed by bigger moves (Mann–Whitney p ≈ 2×10⁻⁷, small effect): volume
+  predicts the **size** of the next move, not its direction.
 * **Direction is barely predictable** from past returns (lag-1 autocorrelation ≈ −0.05).
   **Volatility is strongly predictable** (volatility clustering).
 * Recommended target: **1-day direction, θ = 1%** (typical daily move ≈ 7× the round-trip fee).
@@ -95,10 +111,13 @@ Details: [`docs/02_data_understanding.md`](docs/02_data_understanding.md).
 
 ## Data Preparation
 
-Label confirmed (1D direction, θ = 1%), features engineered (lagged returns, volatility/ATR, volume,
-taker-buy ratio), and a chronological, purged train/validation/test split applied. The test window
-(2025-07 → 2026-09) is a bear market (buy-and-hold Sharpe ≈ −0.33), which matters for how the final
-backtest should be read.
+Label confirmed (1D direction, θ = 1%), 22 candidate features engineered (lags, momentum, volatility/ATR,
+moving-average distance, RSI, relative volume, calendar, interactions), and a chronological, purged
+train/validation/test split applied. Feature selection on the training split keeps **12 of 22** candidates
+(drops noise that fails both ANOVA and a shuffled-label mutual-information test, and one of each pair with
+|ρ| > 0.85); a PCA variant (10 components, 91.7% of variance) is built for comparison. The modeling results
+below were produced on the original 13-feature set. The test window (2025-08 → 2026-09) is a bear market
+(buy-and-hold Sharpe ≈ −0.33), which matters for how the final backtest should be read.
 
 Details: [`docs/04_data_preparation.md`](docs/04_data_preparation.md).
 
