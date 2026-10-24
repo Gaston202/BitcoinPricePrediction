@@ -146,3 +146,24 @@ directional edge. The project's own design already treats the ML model as one in
 uses news sentiment and market indicators — this result suggests those are not optional extras.
 
 Details: [`docs/07_modeling_iteration.md`](docs/07_modeling_iteration.md).
+
+## Portfolio Simulation
+
+The repository includes an offline, trade-by-trade simulator in
+[`src/simulation.py`](src/simulation.py). It accepts an already-loaded local
+price frame and signal series, starts with $1,000 cash and no BTC, applies the
+configured per-side fee, and records the cash, BTC, and marked-to-market
+portfolio value at every timestamp. Signals are `1` (buy), `-1` or `0` (sell),
+and `"HOLD"` (maintain the current position).
+
+Run the local demo after the generated interim and processed files exist:
+
+```bash
+jupyter notebook notebooks/simulation_demo.ipynb
+```
+
+The demo trains the existing random-forest model using only local train
+features, predicts the local test split, joins those predictions to the local
+cleaned daily close data, and plots the strategy equity curve against a
+fee-adjusted $1,000 buy-and-hold baseline. It does not call Binance or any
+other external API.
