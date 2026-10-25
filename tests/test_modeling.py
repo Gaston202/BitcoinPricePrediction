@@ -9,9 +9,10 @@ from src.modeling.train import FEATURE_COLUMNS, evaluate, make_models, split_X_y
 def _toy_frame(n=200, seed=0):
     rng = np.random.default_rng(seed)
     data = {col: rng.normal(size=n) for col in FEATURE_COLUMNS}
-    # Make the label partly learnable from ret_lag1 so a classifier has something to fit,
+    # Make the label partly learnable from one feature so a classifier has something to fit,
     # not purely random noise that would make macro-F1 meaningless to assert on.
-    data["label"] = np.where(data["ret_lag1"] > 0.3, UP, np.where(data["ret_lag1"] < -0.3, DOWN, FLAT))
+    signal = data[FEATURE_COLUMNS[0]]
+    data["label"] = np.where(signal > 0.3, UP, np.where(signal < -0.3, DOWN, FLAT))
     return pd.DataFrame(data)
 
 

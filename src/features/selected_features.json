@@ -1,0 +1,38 @@
+{
+  "selected": [
+    "ret_lag1",
+    "mom_7d",
+    "vol_7d",
+    "vol_30d",
+    "atr_14",
+    "vol_ratio",
+    "dist_ma20",
+    "dist_ma50",
+    "volume_z",
+    "dow_sin",
+    "dow_cos",
+    "ret1_x_volz"
+  ],
+  "dropped": {
+    "mom7_x_volratio": "noise: ANOVA p=0.67 and MI=0.0163 <= shuffled-label baseline",
+    "rsi_14": "noise: ANOVA p=0.12 and MI=0.0113 <= shuffled-label baseline",
+    "mom_14d": "noise: ANOVA p=0.28 and MI=0.0073 <= shuffled-label baseline",
+    "ret_lag2": "noise: ANOVA p=0.63 and MI=0.0004 <= shuffled-label baseline",
+    "is_weekend": "noise: ANOVA p=0.94 and MI=0.0000 <= shuffled-label baseline",
+    "ret_lag3": "noise: ANOVA p=0.14 and MI=0.0000 <= shuffled-label baseline",
+    "taker_buy_ratio": "noise: ANOVA p=0.40 and MI=0.0000 <= shuffled-label baseline",
+    "mom_30d": "correlated with dist_ma50 (rho=0.93), lower MI",
+    "vol_14d": "correlated with atr_14 (rho=0.91), lower MI",
+    "volume_ratio": "correlated with volume_z (rho=0.89), lower MI"
+  },
+  "params": {
+    "corr_method": "spearman",
+    "corr_threshold": 0.85,
+    "anova_alpha": 0.05,
+    "noise_quantile": 0.95,
+    "n_permutations": 20,
+    "max_value_share": 0.95,
+    "fit_on": "train",
+    "train_rows": 1954
+  }
+}
