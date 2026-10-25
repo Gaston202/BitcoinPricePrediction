@@ -18,12 +18,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from src.evaluation.baselines import macro_f1
+from src.features.selection import load_selected_features
 
-FEATURE_COLUMNS = [
-    "ret_lag1", "ret_lag2", "ret_lag3", "ret_lag5", "ret_lag7", "ret_lag14",
-    "vol_7d", "vol_14d", "vol_30d", "atr_14",
-    "log_volume", "volume_z", "taker_buy_ratio",
-]
+# Chosen on train by the feature selection pass in notebooks/04_feature_engineering.ipynb,
+# which writes src/features/selected_features.json. Never edit this list by hand.
+FEATURE_COLUMNS = load_selected_features()
 
 
 def split_X_y(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
