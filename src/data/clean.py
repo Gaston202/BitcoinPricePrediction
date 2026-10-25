@@ -79,3 +79,15 @@ def fill_gaps(df: pd.DataFrame, max_gap: int = config.MAX_FFILL_GAP_HOURS,
     )
     out["filled"] = short_gap
     return out
+
+
+def robust_zscore(series: pd.Series) -> pd.Series:
+    """Distance from the median in units of scaled MAD (≈ std for normal data, robust to fat tails)."""
+    median = series.median()
+    mad = (series - median).abs().median() * 1.4826
+    return (series - median) / mad
+
+
+def flag_outliers(series: pd.Series, threshold: float = config.OUTLIER_Z) -> pd.Series:
+    """True where |robust z-score| exceeds `threshold`; NaN inputs are never flagged."""
+    return robust_zscore(series).abs() > threshold
