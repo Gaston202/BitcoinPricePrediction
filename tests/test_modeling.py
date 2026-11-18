@@ -3,7 +3,18 @@ import pandas as pd
 import pytest
 
 from src.features.returns import DOWN, FLAT, UP
-from src.modeling.train import FEATURE_COLUMNS, evaluate, make_models, split_X_y, tune_class_weights, weighted_predict
+from src.modeling.train import (
+    BASE_MODEL_NAMES,
+    ENSEMBLE_NAMES,
+    FEATURE_COLUMNS,
+    LabelEncodedClassifier,
+    build_model,
+    evaluate,
+    make_models,
+    split_X_y,
+    tune_class_weights,
+    weighted_predict,
+)
 
 
 def _toy_frame(n=200, seed=0):
@@ -24,23 +35,67 @@ def test_split_X_y_separates_label_and_keeps_column_order():
     assert y.tolist() == df["label"].tolist()
 
 
-def test_make_models_returns_expected_candidates():
-    models = make_models()
-    assert set(models) == {"logistic_regression", "random_forest", "gradient_boosting"}
+ALL_CANDIDATES = set(BASE_MODEL_NAMES) | set(ENSEMBLE_NAMES)
 
 
-@pytest.mark.parametrize("name", ["logistic_regression", "random_forest", "gradient_boosting"])
+def test_make_models_returns_literature_candidates():
+    # docs/09_literature_review.md section 2: base learners + two ensembles.
+    assert set(BASE_MODEL_NAMES) == {
+        "logistic_regression", "random_forest", "gradient_boosting",
+        "xgboost", "lightgbm", "svm", "knn",
+    }
+    assert set(ENSEMBLE_NAMES) == {"soft_voting", "stacking"}
+    assert set(make_models()) == ALL_CANDIDATES
+
+
+@pytest.mark.parametrize("name", sorted(ALL_CANDIDATES))
 def test_each_candidate_fits_and_predicts_valid_classes(name):
     train, val = _toy_frame(seed=1), _toy_frame(seed=2)
     X_train, y_train = split_X_y(train)
-    X_val, y_val = split_X_y(val)
+    X_val, _ = split_X_y(val)
 
     model = make_models()[name]
     model.fit(X_train, y_train)
     pred = model.predict(X_val)
+    proba = model.predict_proba(X_val)
 
+    # Every candidate must speak the project's label space (-1/0/1), not an encoded 0/1/2,
+    # because weighted_predict and macro_roc_auc index probabilities by model.classes_.
+    assert list(model.classes_) == [DOWN, FLAT, UP]
     assert set(pred) <= {DOWN, FLAT, UP}
-    assert len(pred) == len(X_val)
+    assert proba.shape == (len(X_val), 3)
+    assert np.allclose(proba.sum(axis=1), 1.0)
+
+
+@pytest.mark.parametrize("name", sorted(ALL_CANDIDATES))
+def test_each_candidate_learns_a_planted_signal(name):
+    # The toy label is a deterministic function of one feature, so every model should beat
+    # the 1/3 macro-F1 of guessing. Guards against a wrapper that silently scrambles labels.
+    train, val = _toy_frame(n=400, seed=1), _toy_frame(n=200, seed=2)
+    model = make_models()[name].fit(*split_X_y(train))
+    assert evaluate(model, *split_X_y(val))["macro_f1"] > 0.5
+
+
+def test_build_model_applies_params():
+    model = build_model("xgboost", {"max_depth": 2, "n_estimators": 17})
+    params = model.get_params()
+    assert params["estimator__max_depth"] == 2
+    assert params["estimator__n_estimators"] == 17
+
+
+def test_build_model_rejects_unknown_name():
+    with pytest.raises(ValueError, match="unknown model"):
+        build_model("deep_magic")
+
+
+def test_label_encoded_classifier_round_trips_original_labels():
+    from sklearn.tree import DecisionTreeClassifier
+
+    X = pd.DataFrame({"a": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]})
+    y = pd.Series([UP, DOWN, FLAT, UP, DOWN, FLAT])
+    model = LabelEncodedClassifier(DecisionTreeClassifier(random_state=0)).fit(X, y)
+    assert list(model.classes_) == [DOWN, FLAT, UP]
+    assert list(model.predict(X)) == y.tolist()
 
 
 def test_evaluate_matches_manual_macro_f1():
