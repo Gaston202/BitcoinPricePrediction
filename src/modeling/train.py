@@ -9,6 +9,8 @@ unbiased read of generalization at the end.
 from __future__ import annotations
 
 import itertools
+import json
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -214,3 +216,28 @@ def tune_class_weights(
         if f1 > best["macro_f1"]:
             best = {"weights": dict(zip(class_order, w.tolist())), "macro_f1": f1}
     return best
+
+
+MODEL_CHOICE_PATH = Path(__file__).with_name("selected_model.json")
+
+
+def save_model_choice(choice: dict, path: Path = MODEL_CHOICE_PATH) -> None:
+    """Persist the model picked on `val` in notebooks/05 so 06 can rebuild it without re-tuning.
+
+    `choice` = {"model": name, "feature_set": tag, "params": {...}, "members": {member: params}}.
+    `members` is only used by the ensembles (each member's tuned hyperparameters).
+    """
+    path.write_text(json.dumps(choice, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def load_model_choice(path: Path = MODEL_CHOICE_PATH) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def model_from_choice(choice: dict, random_state: int = 0):
+    """Unfitted estimator described by a saved choice (base model or ensemble)."""
+    name = choice["model"]
+    if name in ENSEMBLE_NAMES:
+        members = {m: build_model(m, p, random_state) for m, p in choice["members"].items()}
+        return make_ensembles(members, random_state)[name]
+    return build_model(name, choice.get("params"), random_state)

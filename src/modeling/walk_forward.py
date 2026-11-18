@@ -104,7 +104,7 @@ def evaluate_window(model, train: pd.DataFrame, val: pd.DataFrame, window: pd.Da
     return row
 
 
-def _configured_models(names: list[str], train: pd.DataFrame, val: pd.DataFrame,
+def configure_models(names: list[str], train: pd.DataFrame, val: pd.DataFrame,
                        feature_cols: list[str], n_trials: int, seed: int) -> tuple[dict, dict]:
     """Tuned (or default, if n_trials == 0) base models plus ensembles built from them."""
     needed = set(names) | (set(ENSEMBLE_MEMBERS) if set(names) & set(ENSEMBLE_NAMES) else set())
@@ -131,7 +131,7 @@ def run_walk_forward(features: pd.DataFrame, feature_cols: list[str], model_name
     rows, all_params = [], {}
     for window_name, (start, end) in windows.items():
         train, val, window = window_splits(features, start, end)
-        models, params = _configured_models(model_names, train, val, feature_cols, n_trials, seed)
+        models, params = configure_models(model_names, train, val, feature_cols, n_trials, seed)
         all_params[window_name] = params
         for model_name, model in models.items():
             row = evaluate_window(model, train, val, window, feature_cols)

@@ -10,6 +10,9 @@ from src.modeling.train import (
     LabelEncodedClassifier,
     build_model,
     evaluate,
+    load_model_choice,
+    model_from_choice,
+    save_model_choice,
     make_models,
     split_X_y,
     tune_class_weights,
@@ -160,3 +163,20 @@ def test_tune_class_weights_fixes_a_flat_biased_model():
 
     pred = weighted_predict(model, X, best["weights"])
     assert set(pred) == {DOWN, FLAT, UP}  # the tuned rule actually uses all three classes
+
+
+def test_model_choice_round_trips_through_json(tmp_path):
+    path = tmp_path / "selected_model.json"
+    choice = {"model": "xgboost", "feature_set": "selected12",
+              "params": {"max_depth": 2, "learning_rate": 0.05}, "members": {}}
+    save_model_choice(choice, path)
+    assert load_model_choice(path) == choice
+
+
+def test_model_from_choice_rebuilds_base_and_ensemble_models():
+    base = model_from_choice({"model": "random_forest", "params": {"max_depth": 3}, "members": {}})
+    assert base.get_params()["max_depth"] == 3
+    ens = model_from_choice({"model": "soft_voting", "params": {},
+                             "members": {"logistic_regression": {"C": 0.5}, "random_forest": {},
+                                         "lightgbm": {}, "svm": {}}})
+    assert ens.get_params()["logistic_regression__clf__C"] == 0.5
