@@ -1,6 +1,6 @@
 # Modeling Handoff — Findings So Far and Next Steps
 
-**Date:** 2026-11-18 · **Branch:** `feat/model-comparison` · **Status:** code done and tested (107 tests), full
+**Date:** 2026-11-18 · **Branch:** `feat/model-comparison` · **Status:** code done and tested (110 tests), full
 experiments **not run yet**. They will run on a second laptop.
 
 This file records what was decided, what was found, how to run the experiments, and what's left.
@@ -79,7 +79,7 @@ git checkout feat/model-comparison          # the branch must be pushed first
 python -m venv .venv
 source .venv/Scripts/activate               # Windows Git Bash; Linux/macOS: source .venv/bin/activate
 pip install -r requirements.txt             # includes xgboost, lightgbm, optuna
-pytest -q                                   # expect 107 passed
+pytest -q                                   # expect 110 passed
 
 # data/interim is gitignored: regenerate it from the committed raw snapshot
 jupyter nbconvert --to notebook --execute --inplace notebooks/02_data_quality.ipynb
