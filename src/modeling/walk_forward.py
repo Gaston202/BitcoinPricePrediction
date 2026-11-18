@@ -126,10 +126,12 @@ def configure_models(names: list[str], train: pd.DataFrame, val: pd.DataFrame,
 def run_walk_forward(features: pd.DataFrame, feature_cols: list[str], model_names: list[str],
                      windows: dict[str, tuple[pd.Timestamp, pd.Timestamp]] = WINDOWS,
                      n_trials: int = DEFAULT_N_TRIALS, seed: int = 0,
-                     return_params: bool = False):
+                     return_params: bool = False, log=None):
     """One row per (window, model). Tuning and calibration only ever see pre-window data."""
     rows, all_params = [], {}
     for window_name, (start, end) in windows.items():
+        if log:
+            log(f"window {window_name}: start")
         train, val, window = window_splits(features, start, end)
         models, params = configure_models(model_names, train, val, feature_cols, n_trials, seed)
         all_params[window_name] = params

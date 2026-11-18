@@ -182,10 +182,12 @@ def tune_range_model(name: str, X_tr, y_tr, X_val, y_val, n_trials: int, seed: i
 
 def run_range_walk_forward(ds: pd.DataFrame, feature_cols: list[str], model_names: list[str],
                            windows=WINDOWS, n_trials: int = 30, seed: int = 0,
-                           return_predictions: bool = False):
+                           return_predictions: bool = False, log=None):
     """One row per (window, target, model or baseline). Fit/tune only on pre-window data."""
     rows, predictions = [], {}
     for window_name, (start, end) in windows.items():
+        if log:
+            log(f"window {window_name}: start")
         train, val, window = window_splits(ds, start, end)
         for target in TARGETS:
             y_win = window[target]
