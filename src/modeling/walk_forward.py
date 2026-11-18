@@ -138,3 +138,18 @@ def run_walk_forward(features: pd.DataFrame, feature_cols: list[str], model_name
             rows.append({"window": window_name, "model": model_name, **row})
     out = pd.DataFrame(rows)
     return (out, all_params) if return_params else out
+
+
+def rank_models(results: pd.DataFrame, variant: str = "cal") -> pd.DataFrame:
+    """Agreed selection rule (2026-11-18): most windows beating persistence, then mean
+    macro-F1 across windows, then mean ROC-AUC as the tiebreaker. `variant` is "raw" or "cal"."""
+    grouped = results.groupby("model")
+    table = pd.DataFrame({
+        "windows_beating_persistence": grouped[f"beats_persistence_{variant}"].sum().astype(int),
+        "windows_meeting_criterion": grouped[f"dm_met_{variant}"].sum().astype(int),
+        "mean_f1": grouped[f"{variant}_f1"].mean(),
+        "mean_auc": grouped[f"{variant}_auc"].mean(),
+        "mean_f1_minus_persistence": grouped.apply(
+            lambda g: (g[f"{variant}_f1"] - g["persistence_f1"]).mean(), include_groups=False),
+    })
+    return table.sort_values(["windows_beating_persistence", "mean_f1", "mean_auc"], ascending=False)

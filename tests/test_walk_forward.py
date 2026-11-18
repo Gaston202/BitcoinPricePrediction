@@ -81,3 +81,22 @@ def test_run_walk_forward_without_tuning_returns_one_row_per_window_and_model():
     assert set(out["window"]) == {"w1", "w2"}
     assert set(out["model"]) == {"logistic_regression", "soft_voting"}
     assert CLASSES == [DOWN, FLAT, UP]
+
+
+def test_rank_models_orders_by_windows_won_then_mean_f1_then_auc():
+    from src.modeling.walk_forward import rank_models
+
+    rows = []
+    # a: wins 2 windows, mean F1 0.36 | b: wins 1 window, higher mean F1 0.40 | c: ties a, lower AUC
+    for model, f1s, aucs, per in [
+        ("a", [0.37, 0.35], [0.56, 0.56], [0.36, 0.34]),
+        ("b", [0.45, 0.35], [0.60, 0.60], [0.36, 0.40]),
+        ("c", [0.37, 0.35], [0.52, 0.52], [0.36, 0.34]),
+    ]:
+        for w, (f1, auc, p) in enumerate(zip(f1s, aucs, per)):
+            rows.append({"window": f"w{w}", "model": model, "raw_f1": f1, "raw_auc": auc,
+                         "persistence_f1": p, "beats_persistence_raw": f1 > p, "dm_met_raw": False})
+    ranked = rank_models(pd.DataFrame(rows), variant="raw")
+    assert list(ranked.index) == ["a", "c", "b"]
+    assert ranked.loc["a", "windows_beating_persistence"] == 2
+    assert ranked.loc["b", "mean_f1"] == pytest.approx(0.40)
