@@ -9,6 +9,7 @@ unbiased read of generalization at the end.
 from __future__ import annotations
 
 import itertools
+import os
 import json
 from pathlib import Path
 
@@ -37,6 +38,9 @@ from src.features.selection import load_selected_features
 # Chosen on train by the feature selection pass in notebooks/04_feature_engineering.ipynb,
 # which writes src/features/selected_features.json. Never edit this list by hand.
 FEATURE_COLUMNS = load_selected_features()
+
+# Threads per model. Set BTC_N_JOBS when several experiment processes share the machine.
+N_JOBS = int(os.environ.get("BTC_N_JOBS", "-1"))
 
 
 def split_X_y(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
@@ -81,7 +85,7 @@ def _logistic_regression(p: dict, rs: int):
 
 
 def _random_forest(p: dict, rs: int):
-    return RandomForestClassifier(class_weight="balanced", random_state=rs, n_jobs=-1,
+    return RandomForestClassifier(class_weight="balanced", random_state=rs, n_jobs=N_JOBS,
                                   **{"n_estimators": 300, "max_depth": 5, "min_samples_leaf": 20, **p})
 
 
@@ -92,14 +96,14 @@ def _gradient_boosting(p: dict, rs: int):
 
 def _xgboost(p: dict, rs: int):
     return LabelEncodedClassifier(XGBClassifier(
-        objective="multi:softprob", eval_metric="mlogloss", random_state=rs, n_jobs=-1, verbosity=0,
+        objective="multi:softprob", eval_metric="mlogloss", random_state=rs, n_jobs=N_JOBS, verbosity=0,
         **{"n_estimators": 200, "max_depth": 2, "learning_rate": 0.05, "subsample": 0.8,
            "colsample_bytree": 0.8, **p},
     ))
 
 
 def _lightgbm(p: dict, rs: int):
-    return LGBMClassifier(class_weight="balanced", random_state=rs, n_jobs=-1, verbosity=-1,
+    return LGBMClassifier(class_weight="balanced", random_state=rs, n_jobs=N_JOBS, verbosity=-1,
                           **{"n_estimators": 200, "num_leaves": 7, "learning_rate": 0.05,
                              "min_child_samples": 30, "subsample": 0.8, "subsample_freq": 1,
                              "colsample_bytree": 0.8, **p})

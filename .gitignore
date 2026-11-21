@@ -23,3 +23,7 @@ Thumbs.db
 
 # Downloaded paper PDFs (copyrighted, keep local)
 references/papers/
+
+# Experiment logs
+logs/
+*.log
