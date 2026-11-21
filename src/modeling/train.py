@@ -61,7 +61,11 @@ class LabelEncodedClassifier(ClassifierMixin, BaseEstimator):
     def fit(self, X, y, **fit_params):
         self.encoder_ = LabelEncoder().fit(y)
         self.classes_ = self.encoder_.classes_
-        self.estimator_ = clone(self.estimator).fit(X, self.encoder_.transform(y), **fit_params)
+        est = clone(self.estimator)
+        if len(self.classes_) == 2 and est.get_params().get("objective") == "multi:softprob":
+            # XGBoost's multi-class objective rejects a binary target; use the binary equivalent.
+            est.set_params(objective="binary:logistic", eval_metric="logloss")
+        self.estimator_ = est.fit(X, self.encoder_.transform(y), **fit_params)
         return self
 
     def predict_proba(self, X):
