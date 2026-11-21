@@ -1,0 +1,174 @@
+{
+ "original": {
+  "logistic_regression": {
+   "C": 0.15676677195506075
+  },
+  "random_forest": {
+   "n_estimators": 100,
+   "max_depth": 6,
+   "min_samples_leaf": 51,
+   "max_features": 1.0
+  },
+  "gradient_boosting": {
+   "n_estimators": 300,
+   "max_depth": 4,
+   "learning_rate": 0.0547263407801467,
+   "subsample": 0.8077704950881052
+  },
+  "xgboost": {
+   "n_estimators": 250,
+   "max_depth": 3,
+   "learning_rate": 0.060843366042818384,
+   "subsample": 0.7724415914984484,
+   "colsample_bytree": 0.7118273996694524,
+   "min_child_weight": 6.923530586011299,
+   "reg_lambda": 0.20547625125911342
+  },
+  "lightgbm": {
+   "n_estimators": 400,
+   "num_leaves": 5,
+   "learning_rate": 0.07485609298889409,
+   "min_child_samples": 13,
+   "subsample": 0.9721443825522345,
+   "colsample_bytree": 0.6515100101203771,
+   "reg_lambda": 4.097572317586512
+  },
+  "svm": {
+   "C": 1.1535164550302017,
+   "gamma": 0.0036596009805842772
+  },
+  "knn": {
+   "n_neighbors": 25,
+   "weights": "distance"
+  }
+ },
+ "2022_bear": {
+  "logistic_regression": {
+   "C": 0.005446192427985846
+  },
+  "random_forest": {
+   "n_estimators": 200,
+   "max_depth": 7,
+   "min_samples_leaf": 11,
+   "max_features": 0.5
+  },
+  "gradient_boosting": {
+   "n_estimators": 250,
+   "max_depth": 3,
+   "learning_rate": 0.1689836001876967,
+   "subsample": 0.8409101495517417
+  },
+  "xgboost": {
+   "n_estimators": 400,
+   "max_depth": 2,
+   "learning_rate": 0.19496976617438475,
+   "subsample": 0.7432449062453974,
+   "colsample_bytree": 0.6530507802859136,
+   "min_child_weight": 1.5153143519607688,
+   "reg_lambda": 0.2538838609963799
+  },
+  "lightgbm": {
+   "n_estimators": 250,
+   "num_leaves": 5,
+   "learning_rate": 0.18870516434285742,
+   "min_child_samples": 76,
+   "subsample": 0.6003544181483708,
+   "colsample_bytree": 0.6318210387681287,
+   "reg_lambda": 0.021331470317685088
+  },
+  "svm": {
+   "C": 0.24893370032734155,
+   "gamma": 0.0788907678691932
+  },
+  "knn": {
+   "n_neighbors": 25,
+   "weights": "uniform"
+  }
+ },
+ "2023_bull": {
+  "logistic_regression": {
+   "C": 0.024144023215000667
+  },
+  "random_forest": {
+   "n_estimators": 300,
+   "max_depth": 5,
+   "min_samples_leaf": 59,
+   "max_features": "sqrt"
+  },
+  "gradient_boosting": {
+   "n_estimators": 250,
+   "max_depth": 3,
+   "learning_rate": 0.1689836001876967,
+   "subsample": 0.8409101495517417
+  },
+  "xgboost": {
+   "n_estimators": 150,
+   "max_depth": 3,
+   "learning_rate": 0.05651666668430492,
+   "subsample": 0.953269882599266,
+   "colsample_bytree": 0.7526085983711485,
+   "min_child_weight": 2.338203361934122,
+   "reg_lambda": 0.031157710213891604
+  },
+  "lightgbm": {
+   "n_estimators": 350,
+   "num_leaves": 9,
+   "learning_rate": 0.07341226112728232,
+   "min_child_samples": 74,
+   "subsample": 0.7026392870110427,
+   "colsample_bytree": 0.7196520216159801,
+   "reg_lambda": 2.386785381017856
+  },
+  "svm": {
+   "C": 1.5014210783702877,
+   "gamma": 0.08076430253614132
+  },
+  "knn": {
+   "n_neighbors": 60,
+   "weights": "uniform"
+  }
+ },
+ "2025_range": {
+  "logistic_regression": {
+   "C": 0.011785583965307293
+  },
+  "random_forest": {
+   "n_estimators": 300,
+   "max_depth": 8,
+   "min_samples_leaf": 18,
+   "max_features": 0.5
+  },
+  "gradient_boosting": {
+   "n_estimators": 300,
+   "max_depth": 4,
+   "learning_rate": 0.16303035507615388,
+   "subsample": 0.8828977348180874
+  },
+  "xgboost": {
+   "n_estimators": 300,
+   "max_depth": 4,
+   "learning_rate": 0.02863713612018759,
+   "subsample": 0.9747481543842972,
+   "colsample_bytree": 0.7196734035896281,
+   "min_child_weight": 6.481718594624968,
+   "reg_lambda": 1.8360695730218781
+  },
+  "lightgbm": {
+   "n_estimators": 50,
+   "num_leaves": 6,
+   "learning_rate": 0.12558371779628524,
+   "min_child_samples": 64,
+   "subsample": 0.5179661228000672,
+   "colsample_bytree": 0.9379378316980554,
+   "reg_lambda": 0.040167963999687986
+  },
+  "svm": {
+   "C": 1.450567940090356,
+   "gamma": 0.0035850834449734693
+  },
+  "knn": {
+   "n_neighbors": 20,
+   "weights": "uniform"
+  }
+ }
+}
