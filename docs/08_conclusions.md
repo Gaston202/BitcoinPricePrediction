@@ -31,7 +31,7 @@ price prediction. Sections 1–2 are the midterm answers (`notebooks/01`–`03`)
 | **No daily direction edge from price.** 1D models never significantly beat reversal | `docs/06` §2 |
 | **Triple-barrier models predict volatility, not direction** (class ROC-AUC up to 0.69, sign-AUC about 0.50 at 4h/1D), consistent with RQ3 | `docs/06` §3 |
 | **Confidence is informative at 1h:** 54% accuracy on all bars, 61% on the 5% most confident | `docs/06` §7 |
-| **New short-term features earn their place:** 40–50% of every selected set; `close_location` and `streak` are chosen almost everywhere | `docs/04` §6 |
+| **New short-term features earn their place:** 6 of 21 survive the 1D selection (16 features in total), and they are 40–50% of the per-window multi-horizon selections. `close_location` is the most-selected feature overall (27 of 36 runs) | `docs/04` §7, `notebooks/05` §2b |
 | **Final model:** 1h, binary, LightGBM, Platt-calibrated (`src/modeling/selected_model.json`) | `docs/07` |
 
 ## 3. Limitations

@@ -71,9 +71,17 @@ def range_features(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(out)[RANGE_FEATURE_COLUMNS]
 
 
-def build_range_dataset(df: pd.DataFrame) -> pd.DataFrame:
-    """Direction features + range features + the two range targets; finite rows only."""
-    combined = build_features(df).join([range_features(df), range_targets(df)], how="left")
+def build_range_dataset(df: pd.DataFrame, hourly: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Direction features + range features + the two range targets; finite rows only.
+
+    Pass the 1h candles as `hourly` to also add the short-term indicators, which the 1D feature
+    manifest includes since the 2026-11-22 re-selection (notebooks/04).
+    """
+    parts = [range_features(df), range_targets(df)]
+    if hourly is not None:
+        from src.features.short_term import short_term_features  # local: keeps the module light
+        parts.insert(0, short_term_features(df, hourly, bar_hours=24))
+    combined = build_features(df).join(parts, how="left")
     return combined.replace([np.inf, -np.inf], np.nan).dropna()
 
 

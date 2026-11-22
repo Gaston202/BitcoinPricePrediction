@@ -44,7 +44,8 @@ def main() -> None:
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     raw = pd.read_parquet(config.INTERIM_DIR / f"{config.SYMBOL.lower()}_1D_clean.parquet")
-    ds = build_range_dataset(raw)
+    hourly = pd.read_parquet(config.INTERIM_DIR / f"{config.SYMBOL.lower()}_1h_clean.parquet")
+    ds = build_range_dataset(raw, hourly)  # hourly: the 1D manifest includes short-term indicators
     print(f"{len(ds)} rows", flush=True)
     t0 = time.time()
 

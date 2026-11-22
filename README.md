@@ -67,7 +67,7 @@ data/
 docs/
   01_business_understanding.md   objectives, success criteria, decisions log
   02_data_understanding.md       data quality and EDA findings
-  04_data_preparation.md         candidate pool, leakage checks, per-window feature selection
+  04_data_preparation.md         label, split, 43 candidates, selection (16 kept) and why, PCA
   05_modeling.md                 walk-forward protocol, targets, models, tuning, calibration
   06_evaluation.md               baselines incl. reversal, revised criterion, calibration, stability, verdict
   07_modeling_iteration.md       four iterations and the final model
@@ -79,8 +79,8 @@ notebooks/
   02_data_quality.ipynb          gaps, gap policy, outliers, resampling (EDA items 1, 5)
   03_eda.ipynb                   returns, normality, stationarity, ACF, correlation, target, baselines,
                                   Mann-Whitney test (volume vs. next-move size)
-  04_feature_engineering.ipynb   candidate pool for 1h/4h/1D, leakage checks, relevance, per-window selection
-  05_modeling.ipynb              walk-forward protocol, targets, 9 models, tuning, calibration, live rerun
+  04_feature_engineering.ipynb   label, split, 43 candidates (22 original + 21 short-term), selection, PCA
+  05_modeling.ipynb              walk-forward protocol, targets, per-window features, 9 models, calibration, live rerun
   06_evaluation.ipynb            baselines (incl. reversal), revised criterion, sign-AUC, calibration, stability
   07_modeling_iteration.ipynb    four iterations, what changed and why, saved final model
 reports/figures/                 PNGs exported by the notebooks for the report
@@ -131,11 +131,14 @@ Details: [`docs/02_data_understanding.md`](docs/02_data_understanding.md).
 
 ## Data Preparation
 
-Three bar sizes (1h, 4h, 1D) share one candidate pool: the 22 original features, 13 indicators from the literature,
-and **23 new short-term features** (fast indicators, candle shape, intraday statistics from the 1h candles, hour of
-day). Every feature passes look-ahead and scale checks. Features are **re-selected inside every walk-forward
-window** on that window's training rows only (noise and correlation filter, MI ranking, count chosen on
-validation log-loss). New short-term features make up 40–50% of the selected sets.
+Label kept at 1D direction, θ = 1%. The 22 original candidate features (lags, momentum, volatility/ATR, MA
+distance, RSI, relative volume, calendar, interactions) are joined by **21 new short-term indicators** (fast
+indicators, candle shape, intraday statistics from the 1h candles), giving 43 candidates. A chronological, purged
+train/validation/test split comes first. Selection on the training split then keeps **16 of 43**: 10 original
+and 6 new (`rv_168h`, `range_pct`, `rv_4h`, `ret_last_4h`, `close_location`, `mom_3`). It drops noise that fails
+both ANOVA and a shuffled-label MI test, and one of each pair with |ρ| > 0.85. A PCA variant (17 components, 91.2%
+of variance) is built for comparison. The multi-horizon models re-select features inside every walk-forward window
+instead (`notebooks/05`).
 
 Details: [`docs/04_data_preparation.md`](docs/04_data_preparation.md).
 

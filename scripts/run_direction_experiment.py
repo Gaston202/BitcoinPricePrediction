@@ -20,6 +20,7 @@ import sys
 import time
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 
 from src import config  # noqa: E402
 from src.features.indicators import PAPER_INDICATOR_COLUMNS, build_features_with_indicators  # noqa: E402
+from src.features.short_term import short_term_features  # noqa: E402
 from src.modeling.train import BASE_MODEL_NAMES, ENSEMBLE_NAMES, FEATURE_COLUMNS  # noqa: E402
 from src.modeling.walk_forward import rank_models, run_walk_forward  # noqa: E402
 
@@ -47,7 +49,10 @@ def main() -> None:
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     raw = pd.read_parquet(config.INTERIM_DIR / f"{config.SYMBOL.lower()}_1D_clean.parquet")
-    features = build_features_with_indicators(raw)
+    hourly = pd.read_parquet(config.INTERIM_DIR / f"{config.SYMBOL.lower()}_1h_clean.parquet")
+    # The 1D manifest includes short-term indicators since the 2026-11-22 re-selection (notebooks/04).
+    features = build_features_with_indicators(raw).join(short_term_features(raw, hourly, bar_hours=24))
+    features = features.replace([np.inf, -np.inf], np.nan).dropna()
     print(f"{len(features)} rows, {features.index.min().date()} -> {features.index.max().date()}", flush=True)
 
     for tag in args.feature_sets:
