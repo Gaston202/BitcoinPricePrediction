@@ -78,3 +78,21 @@ def test_select_window_features_is_fit_without_validation_leak_and_returns_ranke
     res = select_window_features(X.iloc[:900], y.iloc[:900], X.iloc[900:], y.iloc[900:], counts=(5, 10))
     assert res["features"][0] == "f3"
     assert len(res["features"]) in (5, 10) or len(res["features"]) == res["n_survivors"]
+
+
+def test_reversal_baseline_is_opposite_of_persistence_and_flat_stays_flat():
+    idx = pd.date_range("2022-01-01", periods=5, freq="D", tz="UTC")
+    y = pd.Series([UP, FLAT, DOWN, UP, DOWN], index=idx, dtype=float)
+    fwd = pd.Series([1, 0.5, -1, 1, -1.0], index=idx)
+    b = baselines(y, fwd, fwd.shift(1).fillna(1), [DOWN, FLAT, UP])
+    assert b["reversal_pred"][1:].tolist() == [-UP, FLAT, -DOWN, -UP]
+    assert np.isclose(b["reversal_sign_auc"], 1 - b["persistence_sign_auc"])
+
+
+def test_beats_all_baselines_requires_every_baseline():
+    from src.modeling.multi_horizon import beats_all_baselines
+    base = {"majority_f1": 0.3, "persistence_f1": 0.45, "reversal_f1": 0.52,
+            "persistence_auc": 0.47, "reversal_auc": 0.53}
+    assert beats_all_baselines(0.55, 0.56, base)
+    assert not beats_all_baselines(0.50, 0.56, base)   # beats persistence but not reversal
+    assert not beats_all_baselines(0.55, 0.52, base)   # AUC below reversal

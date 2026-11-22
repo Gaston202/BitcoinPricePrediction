@@ -27,3 +27,6 @@ references/papers/
 # Experiment logs
 logs/
 *.log
+
+# Full out-of-sample predictions (36 MB) stay local; predictions_slim.parquet is committed
+reports/results/multi_horizon/*_predictions.parquet

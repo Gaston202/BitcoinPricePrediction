@@ -172,12 +172,23 @@ def prob_metrics(y, proba, classes, fwd) -> dict:
 
 
 def baselines(y: pd.Series, fwd: pd.Series, last_ret: pd.Series, classes) -> dict:
-    """Majority (window mode) and persistence (previous bar's label) on the same rows."""
+    """Majority (window mode), persistence (previous bar's label) and reversal (its opposite).
+
+    Reversal was added on 2026-11-22: short-term BTC returns are negatively autocorrelated, so at
+    1h/4h "bet against the last bar" beats persistence by itself and is the fairer bar to clear.
+    """
     yv = y.to_numpy()
     maj = y.mode().iloc[0]
     per = y.shift(1).to_numpy().copy()
     per[0] = maj  # first row has no previous label in the window: fall back to the majority class
+    rev = -per  # UP <-> DOWN, FLAT stays FLAT (labels are -1/0/1)
+    rev[0] = maj
     return {
+        "reversal_f1": fast_macro_f1(yv, rev, classes),
+        "reversal_acc": float(np.mean(yv == rev)),
+        "reversal_auc": class_auc(yv, one_hot(rev, classes), classes),
+        "reversal_sign_auc": float(roc_auc_score(fwd.to_numpy() > 0, -np.sign(last_ret.to_numpy()))),
+        "reversal_pred": rev,
         "majority_f1": fast_macro_f1(yv, np.full(len(yv), maj), classes),
         "majority_acc": float(np.mean(yv == maj)),
         "persistence_f1": fast_macro_f1(yv, per, classes),
@@ -222,8 +233,18 @@ def score_split(fitted, calibrated, weights, X, y, fwd, base: dict, classes, blo
         row[f"{v}_flat_share"] = float(np.mean(pred == FLAT))
         row.update({f"{v}_{k}": val for k, val in prob_metrics(yv, p, cl, fwd).items()})
         row[f"{v}_beats_persistence"] = bool(row[f"{v}_f1"] > base["persistence_f1"])
+        row[f"{v}_beats_reversal"] = bool(row[f"{v}_f1"] > base["reversal_f1"])
     row["cal_lift_pvalue"] = block_bootstrap_pvalue(yv, cal_pred, base["persistence_pred"], cl, block)
-    return row, cal_p
+    row["cal_lift_vs_reversal_pvalue"] = block_bootstrap_pvalue(yv, cal_pred, base["reversal_pred"], cl, block)
+    row["cal_beats_all_baselines"] = beats_all_baselines(row["cal_f1"], row["cal_auc"], base)
+    return row, cal_p, cal_pred
+
+
+def beats_all_baselines(f1: float, auc: float, base: dict) -> bool:
+    """docs/01 data-mining criterion as revised 2026-11-22: beat majority, persistence AND reversal
+    on macro-F1, and persistence and reversal on ROC-AUC (a constant majority prediction has AUC 0.5)."""
+    return (f1 > base["majority_f1"] and f1 > base["persistence_f1"] and f1 > base["reversal_f1"]
+            and auc > max(0.5, base["persistence_auc"], base["reversal_auc"]))
 
 
 # --- the walk-forward -----------------------------------------------------------------------------
@@ -276,14 +297,15 @@ def run_target(features: pd.DataFrame, builder: TargetBuilder, target: str, mode
                        "label_shares_train": y_tr.value_counts(normalize=True).round(4).to_dict()}
         fwd, lr = builder.fwd.reindex(win.index), last_ret.reindex(win.index)
         base = baselines(y_win, fwd, lr, classes)
-        base_cols = {k2: v for k2, v in base.items() if k2 != "persistence_pred"}
+        base_cols = {k2: v for k2, v in base.items() if not k2.endswith("_pred")}
         for mname, model in models.items():
             fitted, calibrated, w = fit_calibrated(model, tr[cols], y_tr, va[cols], y_va, classes)
-            row, cal_p = score_split(fitted, calibrated, w, win[cols], y_win, fwd, base, classes, block)
+            row, cal_p, cal_pred = score_split(fitted, calibrated, w, win[cols], y_win, fwd, base, classes, block)
             rows.append({"window": wname, "model": mname, "target": target, "k": k, "n_features": len(cols),
                          "n_window": len(win), **row, **base_cols})
             pdf = pd.DataFrame(cal_p, index=win.index, columns=[f"p_{int(c)}" for c in classes])
             pdf["y"], pdf["fwd"], pdf["window"], pdf["model"], pdf["target"] = y_win, fwd, wname, mname, target
+            pdf["cal_pred"] = cal_pred
             preds.append(pdf)
             if quarterly:
                 qrows += quarterly_scores(features, builder, target, k, cols, model, start, end, classes, wname, mname)
@@ -342,6 +364,13 @@ def rank_models(results: pd.DataFrame, variant: str = "cal") -> pd.DataFrame:
         "mean_ece": g[f"{variant}_ece"].mean(),
         "mean_f1_lift": g.apply(lambda d: (d[f"{variant}_f1"] - d["persistence_f1"]).mean(), include_groups=False),
     })
+    if f"{variant}_beats_reversal" in results:
+        table["windows_beating_reversal"] = g[f"{variant}_beats_reversal"].sum().astype(int)
+        table["mean_f1_lift_vs_reversal"] = g.apply(
+            lambda d: (d[f"{variant}_f1"] - d["reversal_f1"]).mean(), include_groups=False)
+    if variant == "cal" and "cal_lift_vs_reversal_pvalue" in results:
+        table["windows_significant_vs_reversal"] = g["cal_lift_vs_reversal_pvalue"].apply(lambda p: int((p < 0.05).sum()))
+        table["windows_all_baselines"] = g["cal_beats_all_baselines"].sum().astype(int)
     table["neg_logloss"] = -table["mean_logloss"]
     table = table.sort_values(["windows_beating_persistence", "mean_f1", "mean_auc", "neg_logloss"], ascending=False)
     return table.drop(columns="neg_logloss")
