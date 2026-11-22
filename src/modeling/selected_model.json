@@ -1,0 +1,42 @@
+{
+  "calibration": "Platt (sigmoid) on the last 15% of pre-window data, then class weights tuned on the same rows",
+  "decided": "2026-11-22",
+  "feature_set": "per_window_selection",
+  "features": [
+    "rsi_14",
+    "rsi_3",
+    "mom7_x_volratio",
+    "stoch_d",
+    "body_ratio",
+    "obv_slope",
+    "taker_buy_ratio",
+    "close_location",
+    "vol_ratio",
+    "streak"
+  ],
+  "horizon": "1h",
+  "model": "lightgbm",
+  "params": {
+    "colsample_bytree": 0.5861781889798744,
+    "learning_rate": 0.03912673546489807,
+    "min_child_samples": 75,
+    "n_estimators": 300,
+    "num_leaves": 11,
+    "reg_lambda": 0.017600832471878394,
+    "subsample": 0.8760643423385943
+  },
+  "selected_on_window": "original",
+  "target": "binary",
+  "walk_forward_cal_f1": {
+    "2022_bear": 0.5539,
+    "2023_bull": 0.5546,
+    "2025_range": 0.5257,
+    "original": 0.5256
+  },
+  "walk_forward_cal_sign_auc": {
+    "2022_bear": 0.5734,
+    "2023_bull": 0.5777,
+    "2025_range": 0.5403,
+    "original": 0.5421
+  }
+}

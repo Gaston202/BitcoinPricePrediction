@@ -103,3 +103,16 @@ def short_term_features(bars: pd.DataFrame, hourly: pd.DataFrame, bar_hours: int
     if bar_hours < HOURS_PER_DAY:
         parts.append(hour_of_day(bars.index))
     return pd.concat(parts, axis=1)
+
+
+BAR_HOURS = {"1h": 1, "4h": 4, "1D": 24}
+
+
+def candidate_pool(bars: pd.DataFrame, hourly: pd.DataFrame, bar_hours: int) -> pd.DataFrame:
+    """Every candidate feature for one bar size: the original 1D set, the 13 paper indicators and the
+    short-term families. Targets are added per walk-forward window (src.features.targets), not here."""
+    from src.features.indicators import build_features_with_indicators  # local: avoids an import cycle
+
+    base = build_features_with_indicators(bars).drop(columns="label")
+    out = base.join(short_term_features(bars, hourly, bar_hours).reindex(base.index))
+    return out.replace([np.inf, -np.inf], np.nan).dropna()

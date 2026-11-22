@@ -31,28 +31,18 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src import config  # noqa: E402
-from src.features.indicators import build_features_with_indicators  # noqa: E402
-from src.features.short_term import short_term_features  # noqa: E402
+from src.features.short_term import BAR_HOURS, candidate_pool  # noqa: E402
 from src.features.targets import TARGET_NAMES, TargetBuilder  # noqa: E402
 from src.modeling.multi_horizon import rank_models, run_target  # noqa: E402
 from src.modeling.train import BASE_MODEL_NAMES, ENSEMBLE_NAMES  # noqa: E402
 from src.modeling.walk_forward import WINDOWS  # noqa: E402
 
-BAR_HOURS = {"1h": 1, "4h": 4, "1D": 24}
 DEFAULT_TRIALS = {"1h": 25, "4h": 25, "1D": 50}
 OUT_DIR = ROOT / "reports" / "results" / "multi_horizon"
 
 
 def load(rule: str) -> pd.DataFrame:
     return pd.read_parquet(config.INTERIM_DIR / f"{config.SYMBOL.lower()}_{rule}_clean.parquet")
-
-
-def candidate_features(bars: pd.DataFrame, hourly: pd.DataFrame, bar_hours: int) -> pd.DataFrame:
-    """Every candidate feature for one bar size. Targets are added per window, not here."""
-    base = build_features_with_indicators(bars).drop(columns="label")
-    short = short_term_features(bars, hourly, bar_hours).reindex(base.index)
-    out = base.join(short)
-    return out.replace([np.inf, -np.inf], np.nan).dropna()
 
 
 def main() -> None:
@@ -76,7 +66,7 @@ def main() -> None:
     hourly = load("1h")
     bars = hourly if a.horizon == "1h" else load(a.horizon)
     t0 = time.time()
-    features = candidate_features(bars, hourly, bar_hours)
+    features = candidate_pool(bars, hourly, bar_hours)
     builder = TargetBuilder(bars, hourly, bar_hours)
     print(f"{a.horizon}: {len(features)} rows x {features.shape[1]} candidate features, "
           f"{features.index.min()} -> {features.index.max()}, trials={trials}", flush=True)
