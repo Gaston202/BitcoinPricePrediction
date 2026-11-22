@@ -12,6 +12,9 @@ accuracy, 61% on the most confident 5%. Price alone gives **no daily direction e
 business criterion) is the agent's job and is not evaluated yet.
 
 
+> **New to the project?** Read [`docs/project_guide.pdf`](docs/project_guide.pdf): a 16-page beginner-friendly guide
+> from feature engineering to the final models, with every key figure explained.
+
 ## Quick start
 
 Requires Python ≥ 3.11.
