@@ -32,11 +32,14 @@ SIGMA_WINDOW = {24: 30, 4: 42, 1: 168}
 class TargetBuilder:
     """Holds the raw ingredients (next-bar return, sigma, next-bar hourly path) for one bar size."""
 
-    def __init__(self, bars: pd.DataFrame, hourly: pd.DataFrame, bar_hours: int):
+    def __init__(self, bars: pd.DataFrame, hourly: pd.DataFrame, bar_hours: int, horizon: int = 1):
+        """`horizon` = bars ahead for the binary target (e.g. 120 for 5 days of 1h bars).
+        vol3 and triple_barrier are defined for the next bar only."""
         self.bar_hours = bar_hours
+        self.horizon = horizon
         close = bars["close"]
         self.close = close
-        self.fwd = forward_log_return(close, 1)
+        self.fwd = forward_log_return(close, horizon)
         self.sigma = log_returns(close).rolling(SIGMA_WINDOW[bar_hours]).std()
         # Hourly highs/lows of the *next* bar, one column per hour inside it.
         offsets = [pd.Timedelta(hours=bar_hours + j) for j in range(bar_hours)]
@@ -90,6 +93,8 @@ class TargetBuilder:
         return best_k
 
     def labels(self, target: str, index: pd.Index, k: float | None) -> pd.Series:
+        if self.horizon != 1 and target != "binary":
+            raise ValueError(f"{target!r} is only defined one bar ahead; horizon={self.horizon} supports 'binary'")
         if target == "binary":
             return self.binary(index)
         if target == "vol3":

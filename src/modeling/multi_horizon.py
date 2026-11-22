@@ -171,7 +171,7 @@ def prob_metrics(y, proba, classes, fwd) -> dict:
     }
 
 
-def baselines(y: pd.Series, fwd: pd.Series, last_ret: pd.Series, classes) -> dict:
+def baselines(y: pd.Series, fwd: pd.Series, last_ret: pd.Series, classes, shift: int = 1) -> dict:
     """Majority (window mode), persistence (previous bar's label) and reversal (its opposite).
 
     Reversal was added on 2026-11-22: short-term BTC returns are negatively autocorrelated, so at
@@ -179,10 +179,12 @@ def baselines(y: pd.Series, fwd: pd.Series, last_ret: pd.Series, classes) -> dic
     """
     yv = y.to_numpy()
     maj = y.mode().iloc[0]
-    per = y.shift(1).to_numpy().copy()
-    per[0] = maj  # first row has no previous label in the window: fall back to the majority class
+    # Persistence = the last *fully realized* label. For an h-bar target that is the label h bars back:
+    # the label one bar back still depends on prices after t (for h > 1 it would leak the future).
+    per = y.shift(shift).to_numpy().copy()
+    per[:shift] = maj  # first rows have no realized label inside the window: fall back to the majority class
     rev = -per  # UP <-> DOWN, FLAT stays FLAT (labels are -1/0/1)
-    rev[0] = maj
+    rev[:shift] = maj
     return {
         "reversal_f1": fast_macro_f1(yv, rev, classes),
         "reversal_acc": float(np.mean(yv == rev)),
@@ -249,7 +251,7 @@ def beats_all_baselines(f1: float, auc: float, base: dict) -> bool:
 
 # --- the walk-forward -----------------------------------------------------------------------------
 def prepare_window(features: pd.DataFrame, builder: TargetBuilder, target: str, start, end):
-    train, val, window = window_splits(features, start, end)
+    train, val, window = window_splits(features, start, end, embargo=builder.horizon)
     k = builder.choose_k(target, train.index)
     out = []
     for part in (train, val, window):
@@ -281,8 +283,9 @@ def run_target(features: pd.DataFrame, builder: TargetBuilder, target: str, mode
     classes = classes_for(target)
     bar_hours = builder.bar_hours
     intraday = bar_hours < 24
-    block = BOOT_BLOCK[bar_hours]
-    last_ret = np.log(builder.close / builder.close.shift(1))
+    h = builder.horizon
+    block = max(BOOT_BLOCK[bar_hours], h)
+    last_ret = np.log(builder.close / builder.close.shift(h))  # last fully realized h-bar return
     rows, qrows, preds, meta = [], [], [], {}
     for wname, (start, end) in windows.items():
         if log:
@@ -296,7 +299,7 @@ def run_target(features: pd.DataFrame, builder: TargetBuilder, target: str, mode
                        "val_logloss_by_count": sel["val_logloss_by_count"], "params": params,
                        "label_shares_train": y_tr.value_counts(normalize=True).round(4).to_dict()}
         fwd, lr = builder.fwd.reindex(win.index), last_ret.reindex(win.index)
-        base = baselines(y_win, fwd, lr, classes)
+        base = baselines(y_win, fwd, lr, classes, shift=h)
         base_cols = {k2: v for k2, v in base.items() if not k2.endswith("_pred")}
         for mname, model in models.items():
             fitted, calibrated, w = fit_calibrated(model, tr[cols], y_tr, va[cols], y_va, classes)
@@ -326,9 +329,10 @@ def quarterly_scores(features, builder, target, k, cols, model, start, end, clas
     if not edges or edges[0] > start:
         edges = [start] + edges
     edges.append(end + pd.Timedelta(seconds=1))
-    last_ret = np.log(builder.close / builder.close.shift(1))
+    h = builder.horizon
+    last_ret = np.log(builder.close / builder.close.shift(h))
     for q0, q1 in zip(edges[:-1], edges[1:]):
-        tr, va, _ = window_splits(features, q0, end)
+        tr, va, _ = window_splits(features, q0, end, embargo=h)
         q = features.loc[(features.index >= q0) & (features.index < q1)]
         parts = []
         for part in (tr, va, q):
@@ -339,7 +343,7 @@ def quarterly_scores(features, builder, target, k, cols, model, start, end, clas
             continue
         fitted, calibrated, w = fit_calibrated(model, tr[cols], y_tr, va[cols], y_va, classes)
         fwd = builder.fwd.reindex(q.index)
-        base = baselines(y_q, fwd, last_ret.reindex(q.index), classes)
+        base = baselines(y_q, fwd, last_ret.reindex(q.index), classes, shift=h)
         cl = np.asarray(classes)
         cal_p = calibrated.predict_proba(q[cols])
         pred = cl[(cal_p * w).argmax(1)]
