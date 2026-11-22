@@ -100,7 +100,8 @@ src/
   modeling/train.py              9 candidate classifiers, ensembles, model-choice manifest
   modeling/tuning.py             Optuna search spaces
   modeling/multi_horizon.py      walk-forward: per-window selection, calibration, metrics, bootstrap, baselines
-  modeling/range_model.py        next-day high/low regression (HAR + ML)
+  modeling/range_model.py        next-day high/low regression (HAR + ML), 1D
+  modeling/price_targets.py      next-bar high/low price levels with conformal bands, 5-day return (1h/4h)
 scripts/                         runnable experiments (direction, multi-horizon, range)
 reports/results/                 saved experiment outputs read by notebooks 05-07
   visualization/style.py         shared chart style
@@ -159,6 +160,10 @@ Details: [`docs/05_modeling.md`](docs/05_modeling.md).
 | 4h | 0.555 | 4/4 (best model) | 1–2/4 |
 | 1D | ≤ 0.53 | ≤ 2/4 | 0/4 |
 
+**Next-bar high/low price levels** (1h and 4h) also beat their baselines: HAR is 2–7% better than the 20-bar average
+move, and calibrated 10/90% bands are breached 8.7–9.9% of the time (target 10%), ready for stops and take-profits.
+A 5-day return forecast showed no edge.
+
 Short-term BTC return signs mean-revert, so "bet against the last bar" was added as a baseline (2026-11-22).
 Most of the apparent intraday skill is that effect; the model's own edge beyond it is about 1–1.5 macro-F1 points
 at 1h, stable across all 17 quarterly refits. The probabilities are well calibrated (ECE ≤ 0.04). Triple-barrier
@@ -172,7 +177,7 @@ Four iterations: midterm 1D models (failed against persistence) → calibrated w
 models on 1D (4/4 vs persistence, but no reversal check) → multi-horizon with per-window selection and the reversal
 baseline. Final model saved in `src/modeling/selected_model.json`.
 
-Next: next-bar high/low price levels with 10/90% bands and the 5-day close (1h and 4h), then the agent, which adds
-news and macro data and trades selectively, judged on Sharpe net of fees.
+A fifth iteration added next-bar high/low price levels with conformal bands (`src/modeling/selected_price_model.json`).
+Next: the agent, which adds news and macro data and trades selectively, judged on Sharpe net of fees.
 
 Details: [`docs/07_modeling_iteration.md`](docs/07_modeling_iteration.md), [`docs/08_conclusions.md`](docs/08_conclusions.md).

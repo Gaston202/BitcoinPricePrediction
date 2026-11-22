@@ -63,11 +63,34 @@ diagonal. The predictions are narrow: 90% of the 1h P(up) values lie between 0.4
 At 1h, accuracy rises from 54.1% on all bars to 59.4% on the 20% most confident and 60.8% on the top 5%. At 4h it
 stays at about 55–56%. 1D shows no gain.
 
-## 8. Verdict
+## 8. Next-bar high/low price levels
+
+Mean over the 4 windows. Significance is a block bootstrap of the MAE difference vs the 20-bar average.
+
+| Horizon | Target | HAR MAE | Band median (q50) MAE | 20-bar avg MAE | Persistence MAE | HAR R² | HAR significant |
+|---|---|---|---|---|---|---|---|
+| 1h | high | 0.230% ($132) | 0.215% ($123) | 0.246% | 0.303% | 0.17 | 4/4 |
+| 1h | low | 0.246% ($141) | 0.226% ($130) | 0.256% | 0.313% | 0.14 | 4/4 |
+| 4h | high | 0.487% ($279) | 0.442% ($251) | 0.506% | 0.623% | 0.11 | 4/4 |
+| 4h | low | 0.522% ($297) | 0.475% ($270) | 0.535% | 0.655% | 0.10 | 3/4 |
+
+- Every model beats both baselines. HAR is as good as the ML models (the best ML model is within 0.004 MAE points), because the
+  signal is volatility clustering. HAR is 2–7% better than the 20-bar average, and the band median 11–13%.
+- **Bands keep their promise.** After the conformal shift, the high exceeds its 90% level 9.6% (1h) and 9.9% (4h) of
+  the time, and the low falls below its 10% level 9.4% / 8.7%. The 10–90% band contains 79–80% of bars (target 80%).
+  Without the shift the band was too narrow (76–78%). The old 1D mean model was breached about 1 day in 3.
+- Quarterly refits: the refit LightGBM beats the 20-bar average in 13/17 (1h high), 15/17 (1h low), 15/17 (4h high) and
+  10/17 (4h low) quarters.
+- **5-day return:** nothing beats predicting zero (4.04% MAE vs 4.09–4.12% for the best model), and the models beat
+  zero in only 4–5 of 17 quarters. The band covers 83% and is usable only as an uncertainty range.
+
+## 9. Verdict
 
 - The **data-mining criterion is met at 1h**, and more thinly at 4h. It is **not met at 1D**: price alone gives no
   daily direction edge.
 - The **business criterion is not evaluated in this phase** (agreed 2026-11-21). Trading is the agent's job, using a
   confidence band.
-- Hand-off to the agent: calibrated 1h P(up) from LightGBM (binary target), plus the triple-barrier probabilities as
-  a volatility signal.
+- **High/low price levels: usable.** They beat both baselines, and the bands are breached 8.7–9.9% of the time
+  against a 10% promise.
+- Hand-off to the agent: calibrated 1h P(up) from LightGBM (binary target); next-bar high/low price levels with 10–90%
+  bands on 1h and 4h; the triple-barrier probabilities as a volatility signal. No 1D or 5-day forecast from price.

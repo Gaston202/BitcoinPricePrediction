@@ -119,3 +119,4 @@ certainly indicates **data leakage** and must be investigated, not celebrated.
 | 13 | Features (2026-11-21) | 23 short-term features (fast indicators, candle shape, intraday-from-1h). Selection re-run inside every walk-forward window, count chosen on inner-validation log-loss |
 | 14 | Success criterion (2026-11-22) | Beat majority, persistence **and reversal** in every window (see §5) |
 | 15 | Final direction model (2026-11-22) | 1h, binary, LightGBM, Platt-calibrated → `src/modeling/selected_model.json`. No 1D direction model: price alone shows no daily edge |
+| 16 | Price-level model (2026-11-22) | Next-bar high/low on 1h and 4h as price levels (trained as % from close): HAR point forecast + LightGBM 10/50/90% quantile bands with a conformal shift → `src/modeling/selected_price_model.json`. No 5-day forecast (no edge) |

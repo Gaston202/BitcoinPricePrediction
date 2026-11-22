@@ -8,6 +8,7 @@ Rewritten 2026-11-22. Code and figures: `notebooks/07_modeling_iteration.ipynb`.
 | 2 · midterm `07` | + calibrated decision rule, 4-window walk-forward | Random forest beat persistence in 1 of 4 windows |
 | 3 · 2026-11-21 | 1D, 9 models, Optuna, fixed 12 features (+ a 13-indicator ablation) | LightGBM beat persistence 4/4, +3.9 macro-F1. The paper indicators made 8 of 9 models worse. Accuracy (~44%) did not beat "always flat" |
 | 4 · 2026-11-21/22 | 1h/4h/1D × 3 targets, 23 short-term features, per-window selection, Platt calibration, reversal baseline | 1h binary clears the revised criterion 4/4; 1D still has no direction edge |
+| 5 · 2026-11-22 | Next-bar high/low on 1h/4h as price levels, HAR + ML, conformal 10/90% bands; 5-day return | High/low beats its baselines, with bands breached ~10% as promised; 5-day return has no edge |
 
 ## Why iteration 4 changed what it changed
 
@@ -36,7 +37,13 @@ and the 10 features of the latest window. `model_from_choice` rebuilds it. Featu
 It was chosen over the nominal #1 (stacking) for simplicity: the same sign-AUC within 0.001, and one model instead
 of five.
 
+## Price-level model
+
+For each of 1h/4h × high/low: **HAR** for the point forecast plus **LightGBM quantile models** for the 10/50/90%
+band, with their conformal shifts, from the latest window. Saved in `src/modeling/selected_price_model.json`. HAR was
+chosen over the ML models because it is as accurate (within 0.004 MAE points) and fully transparent.
+
 ## Next
 
-Next-bar high/low price levels with 10/90% bands, and the 5-day close (return quantiles + direction) on 1h and 4h
-bars (agreed 2026-11-22). Then the agent: confidence-band trading, judged on Sharpe net of fees.
+The agent: combine the 1h direction probability, the high/low price levels and news/macro inputs into positions,
+stops and take-profits, judged on Sharpe net of fees.

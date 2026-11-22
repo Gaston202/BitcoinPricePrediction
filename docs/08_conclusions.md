@@ -33,6 +33,8 @@ price prediction. Sections 1–2 are the midterm answers (`notebooks/01`–`03`)
 | **Confidence is informative at 1h:** 54% accuracy on all bars, 61% on the 5% most confident | `docs/06` §7 |
 | **New short-term features earn their place:** 6 of 21 survive the 1D selection (16 features in total), and they are 40–50% of the per-window multi-horizon selections. `close_location` is the most-selected feature overall (27 of 36 runs) | `docs/04` §7, `notebooks/05` §2b |
 | **Final model:** 1h, binary, LightGBM, Platt-calibrated (`src/modeling/selected_model.json`) | `docs/07` |
+| **Next-bar high/low is predictable as price levels:** HAR beats the 20-bar average by 2–7%, and the band median by 11–13%. Conformal 10/90% bands are breached 8.7–9.9% of the time (target 10%). Saved in `src/modeling/selected_price_model.json` | `docs/06` §8 |
+| **No 5-day forecast from price:** predicting a 5-day return of zero beats every model | `docs/06` §8 |
 
 ## 3. Limitations
 
@@ -55,8 +57,8 @@ price prediction. Sections 1–2 are the midterm answers (`notebooks/01`–`03`)
 ## 4. Future work (project roadmap)
 
 1. **Modeling (done, 2026-11-22).** 9 models × 3 horizons × 3 targets under walk-forward with per-window selection,
-   calibration and a reversal baseline (§2b). **Next modeling step (agreed):** next-bar high/low price levels with
-   10/90% bands, and the 5-day close (return quantiles + direction) on 1h and 4h bars.
+   calibration and a reversal baseline (§2b). Next-bar high/low price levels with 10/90% bands followed (done
+   2026-11-22). The 5-day return showed no edge.
 2. **Richer inputs.** Daily **news sentiment** (aligned with the 1D horizon), **market indicators** (RSI, MACD,
    moving-average trends, funding rates, Fear & Greed index), and hour/weekday seasonality.
 3. **AI agent.** Combine the model's class probabilities with sentiment and indicators to decide portfolio
