@@ -1,62 +1,73 @@
 # CRISP-DM Phase 5 — Evaluation
 
-Full analysis with code: `notebooks/06_evaluation.ipynb`. Implementation: `src/evaluation/criteria.py`.
+Rewritten 2026-11-22. Code and figures: `notebooks/06_evaluation.ipynb`, `reports/figures/06_*.png`.
 
-This phase does not train anything new. It checks the Phase 4 result against the two criteria fixed
-*before any data was seen*, in `docs/01_business_understanding.md` — not against whichever metric looks
-best in hindsight.
+## 1. Baselines and the reversal effect
 
-## 1. Data-mining success criterion
+From 2022 on, the **signs** of consecutive returns are negatively correlated: −0.061 at 1h and −0.080 at 4h
+(noise bands ±0.010 and ±0.019), and −0.040 at 1D, which is inside its ±0.047 band. Persistence is therefore worse
+than a coin flip intraday (sign-AUC 0.47 at 1h, 0.46 at 4h). **Reversal** ("bet against the last bar") reaches 0.53
+at 1h and 0.54 at 4h with no model at all.
 
-> `docs/01` Sec. 4: beat **both** majority and persistence baselines on **both** macro-F1 **and** ROC-AUC.
+Mean binary macro-F1 of the baselines:
 
-| | macro-F1 (test) | ROC-AUC (test) |
-|---|---|---|
-| majority baseline | 0.207 | 0.500 |
-| persistence baseline | 0.356 | 0.518 |
-| random forest (selected model) | 0.302 | **0.579** |
-
-**Not met.** The model's ROC-AUC does beat both baselines — its predicted probabilities rank the true
-class better than chance, a genuine if modest signal. But the criterion requires winning on both metrics
-against both baselines, and macro-F1 loses to persistence. A model can have a better-than-chance
-probability ranking and still make worse hard decisions than a trivial rule if its decision threshold is
-miscalibrated — consistent with `docs/05_modeling.md`'s finding that it defaults to "flat" on 89% of test
-days versus an actual 45% flat rate. This is a diagnosable calibration problem, not evidence of zero
-signal.
-
-## 2. Business success criterion
-
-> `docs/01` Sec. 2: beat buy-and-hold BTC on Sharpe ratio, net of 0.1%-per-side fees, over the same test
-> window.
-
-| | Total return | Sharpe | Max drawdown |
+| Horizon | Majority | Persistence | Reversal |
 |---|---|---|---|
-| strategy (random forest positions) | +9.5% | **0.44** | −17.1% |
-| buy-and-hold | −24.9% | −0.33 | −53.0% |
+| 1h | 0.336 | 0.471 | 0.528 |
+| 4h | 0.338 | 0.463 | 0.536 |
+| 1D | 0.340 | 0.484 | 0.516 |
 
-**Technically met.** But per the risk `docs/01` Sec. 5 flagged in advance — *"regime change: the test
-period must be reported with its regime"* — this window is a bear market. The strategy wins by being in
-the market only ~11% of the time, mechanically avoiding most of the drawdown. This has not been shown to
-generalize to a bull or range-bound regime; it has only been shown to avoid losing in this specific
-downturn.
+The criterion was revised accordingly (`docs/01` §5, decision 14): a model must beat majority, persistence **and**
+reversal in every window.
 
-## 3. Overall verdict
+## 2. Revised data-mining criterion
 
-| Criterion | Status |
-|---|---|
-| Data-mining success | **Not met** |
-| Business success | **Technically met, on a single bear-market window** |
+| Horizon | Target | Best model | Windows clearing all baselines | Significant vs reversal | Mean sign-AUC | Models clearing 4/4 (of 9) |
+|---|---|---|---|---|---|---|
+| 1h | binary | stacking | 4/4 | 3/4 | 0.558 | 8 |
+| 1h | vol3 | soft voting | 4/4 | 4/4 | 0.556 | 8 |
+| 1h | triple barrier | LightGBM | 4/4 | 4/4 | 0.543 | 8 |
+| 4h | binary | soft voting | 4/4 | 2/4 | 0.555 | 5 |
+| 4h | vol3 | soft voting | 4/4 | 3/4 | 0.551 | 4 |
+| 4h | triple barrier | soft voting | 4/4 | 4/4 | 0.499 | 3 |
+| 1D | binary | gradient boosting | 2/4 | 0/4 | 0.512 | 0 |
+| 1D | vol3 | gradient boosting | 2/4 | 1/4 | 0.507 | 0 |
+| 1D | triple barrier | soft voting | 3/4 | 2/4 | 0.505 | 1 |
 
-**Recommendation: do not proceed to Deployment (Phase 6) on this model as-is.** A business-criterion pass
-driven by one favorable test window is exactly the false positive the project's own risk log anticipated.
+## 3. Direction vs volatility
 
-## 4. Before trusting this result
+The **shared sign-AUC** scores every model on one question: does P(up) − P(down) rank up-bars above down-bars? It is
+about 0.55 at 1h and 4h for every model and target, except triple barrier at 4h (0.50), and about 0.50–0.53 at 1D.
+Triple barrier has the highest class ROC-AUC (0.62–0.69), but that comes from predicting *whether* a barrier gets
+hit, i.e. volatility. Binary is the clean direction target. The triple-barrier probabilities are kept as a
+volatility signal.
 
-1. **Re-test across regimes.** Rerun the same pipeline with a bull-market and a range-bound test window
-   (the yearly Sharpe table in `03_eda.ipynb` item 12 identifies candidate years) to check whether the
-   business criterion still holds outside a downturn.
-2. **Address the calibration gap.** The AUC-without-F1 pattern points to a threshold/calibration problem,
-   not an absence of signal — worth trying class-balanced decision thresholds or a cost-sensitive
-   objective before concluding this feature set is exhausted.
-3. Only after (1) and (2) should this feed into the full agent (news sentiment + market indicators)
-   with confidence that the ML leg contributes real signal rather than a favorable test window.
+## 4. 1h binary in detail
+
+LightGBM, stacking and XGBoost are within about 0.001 of each other. Per window (2022 / 2023 / 2025 / `original`),
+LightGBM beats reversal by +1.4, +1.4, +1.3 and +0.6 macro-F1 points (p = 0.005, 0.004, 0.002, 0.117). Its sign-AUC
+is 0.573, 0.578, 0.540 and 0.542.
+
+## 5. Calibration
+
+After Platt scaling, ECE is at most 0.039. Uncalibrated, it was 0.07–0.11 at 1D. The reliability curves sit on the
+diagonal. The predictions are narrow: 90% of the 1h P(up) values lie between 0.41 and 0.60.
+
+## 6. Stability (17 quarterly refits per intraday horizon)
+
+- **1h:** sign-AUC between 0.533 and 0.586 (mean 0.557), and it beats persistence in all 17 quarters.
+- **4h:** mean sign-AUC 0.552, but it dips below 0.5 in 2 quarters. It beats persistence in 16 of 17.
+
+## 7. Selective prediction
+
+At 1h, accuracy rises from 54.1% on all bars to 59.4% on the 20% most confident and 60.8% on the top 5%. At 4h it
+stays at about 55–56%. 1D shows no gain.
+
+## 8. Verdict
+
+- The **data-mining criterion is met at 1h**, and more thinly at 4h. It is **not met at 1D**: price alone gives no
+  daily direction edge.
+- The **business criterion is not evaluated in this phase** (agreed 2026-11-21). Trading is the agent's job, using a
+  confidence band.
+- Hand-off to the agent: calibrated 1h P(up) from LightGBM (binary target), plus the triple-barrier probabilities as
+  a volatility signal.

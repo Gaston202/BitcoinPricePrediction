@@ -66,12 +66,23 @@ The FLAT class stops the agent from paying fees on moves too small to be worth t
 
 Horizon and θ are chosen from the EDA evidence. **Recommended: 1-day horizon, θ = 1%** (to be confirmed by the team).
 
+> **Update 2026-11-22 (decisions 12–15).** The modeling iteration tested 1h, 4h and 1D bars with a binary target, a
+> volatility-scaled 3-class target and a triple-barrier target (`docs/09` §4, `docs/05`). The selected direction model
+> is **binary (up/down) on 1h bars**. "Too small to trade" is now expressed as a **confidence band** around
+> P(up) = 0.5 instead of a FLAT class. The model still outputs calibrated probabilities.
+
 ## 5. Data-mining success criterion
 
 > On a **chronologically held-out** test set, the classifier beats both the **majority-class** baseline and the
 > **persistence** baseline ("the next move repeats the last realized move") on **macro-F1** and **ROC-AUC**.
 
 Reference values (full dataset, 1D / θ = 1%): majority macro-F1 ≈ 0.18, persistence macro-F1 ≈ 0.36.
+
+> **Revised 2026-11-22 (decision 14).** The classifier must also beat a **reversal** baseline ("the next move is the
+> opposite of the last realized move") on macro-F1 and ROC-AUC, in **every** walk-forward window, with the lift over
+> reversal tested by a block bootstrap. Reason: at 1h and 4h the signs of consecutive returns are negatively
+> correlated (−0.06 and −0.08), so persistence is worse than a coin flip and beating it is too easy. Implemented in
+> `src.modeling.multi_horizon.beats_all_baselines`; evaluated in `notebooks/06_evaluation.ipynb`.
 
 Realistic expectation: crypto direction is close to unpredictable from price alone (EDA item 7).
 A few points above the baselines is a meaningful result. An accuracy far above that almost
@@ -104,3 +115,7 @@ certainly indicates **data leakage** and must be investigated, not celebrated.
 | 9 | Code layout | Notebooks for the narrative, `src/` for tested logic, venv + `requirements.txt` |
 | 10 | Outliers | Flag daily returns with robust z-score > 5; keep them (real market events) |
 | 11 | Feature selection | Train split only: drop scale-dependent `log_volume`, drop noise (ANOVA + MI vs. shuffled labels), drop one of each pair with \|ρ\| > 0.85 |
+| 12 | Horizons and targets (2026-11-21) | 1h, 4h and 1D bars; binary, volatility-scaled 3-class and triple-barrier targets, *k* set on inner train for a third flat. ML judged on ML metrics only; trading belongs to the agent |
+| 13 | Features (2026-11-21) | 23 short-term features (fast indicators, candle shape, intraday-from-1h). Selection re-run inside every walk-forward window, count chosen on inner-validation log-loss |
+| 14 | Success criterion (2026-11-22) | Beat majority, persistence **and reversal** in every window (see §5) |
+| 15 | Final direction model (2026-11-22) | 1h, binary, LightGBM, Platt-calibrated → `src/modeling/selected_model.json`. No 1D direction model: price alone shows no daily edge |
