@@ -1,0 +1,256 @@
+{
+ "original": {
+  "features": [
+   "hl_range_6b",
+   "rv_168h",
+   "hl_range_lag1",
+   "down_move_6b",
+   "up_move_6b",
+   "bb_width",
+   "dist_ma20",
+   "dist_ma50",
+   "down_move_lag1",
+   "mom_3",
+   "mom_7d",
+   "macd_hist",
+   "ret_lag1",
+   "up_move_lag1",
+   "ret_last_1h",
+   "ret_lag3",
+   "volume_ratio",
+   "ret_lag2",
+   "rsi_3",
+   "taker_buy_ratio",
+   "mfi_14",
+   "ret1_x_volz",
+   "streak",
+   "close_location",
+   "upper_wick",
+   "rv_ratio_day_week",
+   "dow_sin",
+   "hour_cos",
+   "up_hours_share",
+   "vol_ratio"
+  ],
+  "n_survivors": 33,
+  "val_mae_by_count": {
+   "10": 0.005458578886128015,
+   "15": 0.005466043733541733,
+   "20": 0.005422330717885204,
+   "30": 0.005358834838477202
+  },
+  "params": {
+   "har": {},
+   "ridge": {
+    "alpha": 25.36039379566478
+   },
+   "random_forest": {
+    "max_depth": 12,
+    "min_samples_leaf": 29,
+    "max_features": 0.5
+   },
+   "xgboost": {
+    "n_estimators": 400,
+    "max_depth": 3,
+    "learning_rate": 0.07230917851781503,
+    "min_child_weight": 84.59126528049376,
+    "reg_lambda": 0.14135935551752302
+   },
+   "lightgbm": {
+    "n_estimators": 400,
+    "num_leaves": 4,
+    "learning_rate": 0.08472519974533016,
+    "min_child_samples": 106,
+    "reg_lambda": 0.17538232373118048
+   }
+  },
+  "quantile_shift": {
+   "0.1": -0.0010639482105933868,
+   "0.5": 0.00014295468536783783,
+   "0.9": 0.00020763073556312353
+  }
+ },
+ "2022_bear": {
+  "features": [
+   "hl_range_6b",
+   "rv_168h",
+   "bb_width",
+   "hl_range_lag1",
+   "up_move_6b",
+   "dist_ma20",
+   "macd_hist",
+   "dist_ma50",
+   "down_move_lag1",
+   "mom_3"
+  ],
+  "n_survivors": 31,
+  "val_mae_by_count": {
+   "10": 0.008744233721746392,
+   "15": 0.008850209113750859,
+   "20": 0.008751416694604816,
+   "30": 0.008760630413641002
+  },
+  "params": {
+   "har": {},
+   "ridge": {
+    "alpha": 0.0010745157949445052
+   },
+   "random_forest": {
+    "max_depth": 9,
+    "min_samples_leaf": 16,
+    "max_features": "sqrt"
+   },
+   "xgboost": {
+    "n_estimators": 200,
+    "max_depth": 5,
+    "learning_rate": 0.01960808898173293,
+    "min_child_weight": 13.704648392849018,
+    "reg_lambda": 0.011385953381489415
+   },
+   "lightgbm": {
+    "n_estimators": 300,
+    "num_leaves": 13,
+    "learning_rate": 0.011307537115650189,
+    "min_child_samples": 45,
+    "reg_lambda": 0.8080136976028688
+   }
+  },
+  "quantile_shift": {
+   "0.1": -0.0009935085075938313,
+   "0.5": -0.0005745154263992976,
+   "0.9": -0.00017271096424791572
+  }
+ },
+ "2023_bull": {
+  "features": [
+   "hl_range_6b",
+   "rv_168h",
+   "down_move_6b",
+   "bb_width",
+   "up_move_6b",
+   "range_pct",
+   "roc_10",
+   "mom_3",
+   "dist_ma50",
+   "mom_7d",
+   "macd_hist",
+   "down_move_lag1",
+   "ret_lag3",
+   "ret_lag1",
+   "ret_last_1h",
+   "up_move_lag1",
+   "ret_lag2",
+   "volume_ratio",
+   "rsi_3",
+   "mfi_14"
+  ],
+  "n_survivors": 35,
+  "val_mae_by_count": {
+   "10": 0.006868806629023795,
+   "15": 0.006862699751883686,
+   "20": 0.006788540466443183,
+   "30": 0.00681274524657146
+  },
+  "params": {
+   "har": {},
+   "ridge": {
+    "alpha": 7.505241622349544
+   },
+   "random_forest": {
+    "max_depth": 7,
+    "min_samples_leaf": 68,
+    "max_features": 0.5
+   },
+   "xgboost": {
+    "n_estimators": 500,
+    "max_depth": 6,
+    "learning_rate": 0.019759472126311062,
+    "min_child_weight": 96.35646652671653,
+    "reg_lambda": 0.014026739189392156
+   },
+   "lightgbm": {
+    "n_estimators": 400,
+    "num_leaves": 21,
+    "learning_rate": 0.01936556286456254,
+    "min_child_samples": 417,
+    "reg_lambda": 3.1000218659967316
+   }
+  },
+  "quantile_shift": {
+   "0.1": 4.335866408626196e-05,
+   "0.5": 8.877937130822265e-05,
+   "0.9": 0.00010209593303277768
+  }
+ },
+ "2025_range": {
+  "features": [
+   "hl_range_6b",
+   "rv_168h",
+   "hl_range_lag1",
+   "up_move_6b",
+   "down_move_6b",
+   "bb_width",
+   "dist_ma20",
+   "macd_signal",
+   "mom_3",
+   "down_move_lag1",
+   "mom_7d",
+   "macd_hist",
+   "ret_lag1",
+   "ret_lag3",
+   "ret_last_1h",
+   "up_move_lag1",
+   "volume_ratio",
+   "ret_lag2",
+   "mfi_14",
+   "ret1_x_volz",
+   "taker_buy_ratio",
+   "stoch5_k",
+   "streak",
+   "rv_ratio_day_week",
+   "upper_wick",
+   "close_location",
+   "hour_cos",
+   "dow_sin",
+   "vol_ratio",
+   "up_hours_share"
+  ],
+  "n_survivors": 33,
+  "val_mae_by_count": {
+   "10": 0.006011131991530223,
+   "15": 0.0060002800927675265,
+   "20": 0.006013760838993948,
+   "30": 0.005959020858479094
+  },
+  "params": {
+   "har": {},
+   "ridge": {
+    "alpha": 30.093699952213814
+   },
+   "random_forest": {
+    "max_depth": 10,
+    "min_samples_leaf": 59,
+    "max_features": 0.5
+   },
+   "xgboost": {
+    "n_estimators": 100,
+    "max_depth": 3,
+    "learning_rate": 0.09641324562782859,
+    "min_child_weight": 1.8687317748326278,
+    "reg_lambda": 0.45097538895582695
+   },
+   "lightgbm": {
+    "n_estimators": 200,
+    "num_leaves": 31,
+    "learning_rate": 0.01960808898173293,
+    "min_child_samples": 123,
+    "reg_lambda": 0.011385953381489415
+   }
+  },
+  "quantile_shift": {
+   "0.1": -0.00036095114024668474,
+   "0.5": 0.0004441310878310744,
+   "0.9": 0.00033317053147035073
+  }
+ }
+}
