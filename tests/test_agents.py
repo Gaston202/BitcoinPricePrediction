@@ -178,3 +178,40 @@ def test_feature_matrix_refactor_keeps_build_features_identical():
     bars = _bars(300, freq="1D")
     pd.testing.assert_frame_equal(build_features(bars), _build_features_reference(bars))
     assert feature_matrix(bars).index.equals(bars.index)
+
+
+# ------------------------------------------------------------------ hard-limit regressions
+def _flat_uptrend_row(price: float) -> dict:
+    """A row on which the trend analyst is always bullish, so the agent always wants to buy."""
+    return {"close": price, "atr": price * 0.01, "atr_pct": 0.01, "vol_ratio": 1.0,
+            "ema20": price * 1.02, "ema50": price, "sma200": price * 0.9,
+            "macd_hist": 1.0, "macd_hist_prev": 0.0}
+
+
+def test_kill_switch_fires_once_and_resets_the_drawdown_after_the_pause():
+    # Stops so wide they never trigger, so only the kill switch can protect the wallet.
+    cfg = config_for("4h", analysts=["trend"], stop_atr_mult=100.0, take_profit_atr_mult=100.0)
+    g = TradingAgentsGraph(cfg, "4h")
+    prices = list(np.linspace(100, 70, 40)) + [70.0 - 0.01 * i for i in range(80)]  # crash, then drift lower
+    ts = pd.date_range("2024-01-01", periods=len(prices), freq="4h", tz="UTC")
+    kills = []
+    for t, p in zip(ts, prices):
+        s = g.propagate(_flat_uptrend_row(p), t)
+        if any(r.startswith("KILL SWITCH") for r in s.decision.reasons):
+            kills.append(t)
+    # Before the fix the old peak was kept, so every re-entry after the pause was killed again.
+    assert len(kills) == 1
+    assert g.wallet.btc > 0  # it is allowed back into the market after the pause
+
+
+def test_take_profit_is_not_bought_back_on_the_next_candle():
+    cfg = config_for("4h", analysts=["trend"], take_profit_atr_mult=2.0, min_hold_bars=1)
+    g = TradingAgentsGraph(cfg, "4h")
+    prices = [100.0] * 3 + list(np.linspace(100, 110, 20))  # steady rally: take-profit hits
+    ts = pd.date_range("2024-01-01", periods=len(prices), freq="4h", tz="UTC")
+    for t, p in zip(ts, prices):
+        g.propagate(_flat_uptrend_row(p), t)
+    sides = [t["side"] for t in g.wallet.trades]
+    first_tp = next(i for i, t in enumerate(g.wallet.trades) if "TAKE-PROFIT" in t["reason"])
+    # The rating stays Buy the whole time, so nothing after the take-profit may be a BUY.
+    assert "BUY" not in sides[first_tp + 1:]

@@ -39,3 +39,13 @@ def test_backtest_short_position_profits_from_a_falling_price():
     labels = pd.Series([DOWN, DOWN])
     result = backtest(labels, close, fee=0.0)
     assert result["total_return"] > 0
+
+
+
+def test_short_position_return_is_exact_not_log_approximated():
+    """A short earns -r in simple terms; position * log return would overstate it."""
+    close = pd.Series([100.0, 50.0, 50.0])   # price halves after the first close
+    labels = pd.Series([DOWN, FLAT, FLAT])   # short for that move, then flat
+    result = backtest(labels, close, fee=0.0)
+    # Exact: +50%. The old formula gave -log(0.5) = +69% log return, i.e. +100%.
+    assert result["total_return"] == pytest.approx(0.5)

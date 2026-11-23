@@ -133,10 +133,16 @@ def risk_debate(proposal: TraderProposal, plan: ResearchPlan, row: dict, drawdow
 # --------------------------------------------------------------------------- portfolio manager
 @dataclass
 class ManagerState:
+    """What the portfolio manager remembers between candles."""
+
     last_trade_step: int = -10**9
-    paused_until: int = -1
+    paused_until: int = -1           # no new buying before this step (after the kill switch)
     stop_loss: float | None = None
     take_profit: float | None = None
+    # After a take-profit the trade is considered finished: adding exposure again needs a
+    # fresh signal (the rating must first fall back to Hold or lower). Without this, the
+    # next Buy rating re-bought the half that was just banked and paid the fees twice.
+    reentry_blocked: bool = False
 
 
 def portfolio_manager(plan: ResearchPlan, proposal: TraderProposal, views: list[RiskView], row: dict,
@@ -150,17 +156,24 @@ def portfolio_manager(plan: ResearchPlan, proposal: TraderProposal, views: list[
     target = chosen[profile].target_exposure if profile in chosen else proposal.target_exposure
     reasons.append(f"Adopts the {profile} risk view: target {target:.0%}.")
     forced = False
+    exit_reason = None
+
+    if ms.reentry_blocked and plan.rating not in ("Buy", "Overweight"):
+        ms.reentry_blocked = False  # the signal has reset; the next Buy is a new trade
+    if ms.reentry_blocked and target > current:
+        target = current
+        reasons.append("Profit was just taken - waiting for a fresh buy signal before adding again.")
 
     value = wallet.value(price)
     drawdown = value / peak - 1 if peak > 0 else 0.0
     if wallet.btc > 0 and ms.stop_loss and price <= ms.stop_loss:
-        target, forced = 0.0, True
+        target, forced, exit_reason = 0.0, True, "stop_loss"
         reasons.append(f"STOP-LOSS hit: price {price:,.0f} <= stop {ms.stop_loss:,.0f}. Exit everything.")
     elif wallet.btc > 0 and ms.take_profit and price >= ms.take_profit:
-        target, forced = min(target, current / 2), True
+        target, forced, exit_reason = min(target, current / 2), True, "take_profit"
         reasons.append(f"TAKE-PROFIT hit at {price:,.0f}: bank half the position.")
     if drawdown <= -cfg["max_drawdown"] and current > 0:
-        target, forced = 0.0, True
+        target, forced, exit_reason = 0.0, True, "kill_switch"
         ms.paused_until = step + cfg["pause_bars_after_kill"]
         reasons.append(f"KILL SWITCH: wallet {drawdown:.0%} below peak. Go to cash and pause "
                        f"{cfg['pause_bars_after_kill']} candles.")
@@ -186,4 +199,4 @@ def portfolio_manager(plan: ResearchPlan, proposal: TraderProposal, views: list[
     elif action == "HOLD" and approved:
         reasons.append("Nothing to change.")
     return FinalDecision(plan.rating, action, approved, float(target), float(current), reasons,
-                         proposal.stop_loss, proposal.take_profit)
+                         proposal.stop_loss, proposal.take_profit, exit_reason if action != "HOLD" else None)

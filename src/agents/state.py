@@ -82,6 +82,7 @@ class FinalDecision:
     reasons: list[str]
     stop_loss: float | None = None
     take_profit: float | None = None
+    exit_reason: str | None = None   # "stop_loss" / "take_profit" / "kill_switch" when a hard limit forced the trade
 
 
 @dataclass

@@ -60,6 +60,11 @@ class TradingAgentsGraph:
             plan.rating = rate(self.smoothed, self.cfg["rating_thresholds"])
             plan.rationale += (f" Smoothed over ~{span} candles the conviction is {self.smoothed:+.2f} "
                                f"-> final rating {plan.rating}.")
+        if self.step == self.ms.paused_until:
+            # The kill-switch pause is over: measure the drawdown from today's equity again.
+            # Keeping the old peak would re-fire the kill switch on the first candle back in
+            # the market (the wallet is still ~25% below it) and sell again at a loss.
+            self.peak = self.wallet.value(price)
         current = self.wallet.exposure(price)
         proposal = trader(plan, row, current, self.cfg)
         drawdown = self.wallet.value(price) / self.peak - 1
@@ -74,8 +79,9 @@ class TradingAgentsGraph:
                 self.ms.stop_loss, self.ms.take_profit = decision.stop_loss, decision.take_profit
             if self.wallet.btc == 0:
                 self.ms.stop_loss = self.ms.take_profit = None
-            elif "TAKE-PROFIT" in " ".join(decision.reasons):
-                self.ms.take_profit = None  # half banked; let the rest run with the stop
+            if decision.exit_reason == "take_profit":
+                self.ms.take_profit = None      # half banked; the rest runs with the stop
+                self.ms.reentry_blocked = True
 
         equity = self.wallet.value(price)
         self.peak = max(self.peak, equity)
