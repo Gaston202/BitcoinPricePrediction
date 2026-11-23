@@ -42,8 +42,12 @@ from src.data.news import load_headlines
 logger = logging.getLogger(__name__)
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-DEFAULT_MODEL = "google/gemma-4-31b-it:free"   # open weights (Google DeepMind), free on OpenRouter
-DAYS_PER_REQUEST = 7
+# Open weights (NVIDIA, 550B mixture-of-experts), free on OpenRouter, reliable JSON. Chosen over
+# google/gemma-4-31b-it:free, whose free pool was rate-limited upstream on every attempt (2026-11-24).
+DEFAULT_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
+# 14 days per request keeps a full history (~1,400 days) near 100 requests, i.e. within two days
+# of the free tier's daily request limit; a median day has only 2 headlines, so prompts stay short.
+DAYS_PER_REQUEST = 14
 HEADLINES_PER_DAY = 20        # GDELT ranks by relevance, so these are the most relevant ones
 MAX_RETRIES = 5
 TIMEOUT = 120
@@ -206,7 +210,7 @@ class LLMScorer:
             "model": self.model,
             "temperature": 0,
             "seed": 0,
-            "max_tokens": 1500,
+            "max_tokens": 4000,
             "response_format": {"type": "json_object"},
             "messages": [{"role": "system", "content": SYSTEM_PROMPT},
                          {"role": "user", "content": self._prompt(days)}],
@@ -271,10 +275,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--scorer", choices=["lexicon", "llm"], default="lexicon")
     parser.add_argument("--model", default=None, help=f"OpenRouter model id (default {DEFAULT_MODEL})")
+    parser.add_argument("--days-per-request", type=int, default=DAYS_PER_REQUEST)
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     scorer = LexiconScorer() if args.scorer == "lexicon" else LLMScorer(model=args.model)
-    batch = 365 if args.scorer == "lexicon" else DAYS_PER_REQUEST
+    batch = 365 if args.scorer == "lexicon" else args.days_per_request
     out = score_all(load_headlines(), scorer, batch_days=batch)
     print(f"{len(out):,} days scored -> {cache_path(scorer.name)}")
 

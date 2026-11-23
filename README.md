@@ -115,7 +115,7 @@ src/
   data/news.py                   daily Bitcoin headlines (Hacker News or GDELT), resumable, frozen snapshot
   agents/                        hybrid multi-agent trader (analysts, debate, trader, risk team,
                                   portfolio manager, memory, quant analyst, replay/live sessions)
-  agents/news_sentiment.py       LLM (OpenRouter, Gemma 4 31B) and lexicon news scorers, cached per day
+  agents/news_sentiment.py       LLM (OpenRouter, Nemotron 3 Ultra) and lexicon news scorers, cached per day
   features/returns.py            log returns, resampling, 3-class labels
   features/engineering.py        candidate features (lags, momentum, volatility, trend, volume, calendar,
                                   interactions), chronological split

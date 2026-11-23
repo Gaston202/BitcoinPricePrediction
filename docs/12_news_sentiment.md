@@ -44,7 +44,7 @@ D+1 00:00 UTC on (`attach_news`; unit test `test_attach_news_uses_a_day_only_aft
 
 | Scorer | What it is | Role |
 |---|---|---|
-| **LLM** | `google/gemma-4-31b-it:free` on OpenRouter. Open weights (anyone can rerun it locally), free, follows a JSON format. Seven days per request, top 20 headlines per day, temperature 0, fixed seed | The hybrid agent's news reader |
+| **LLM** | `nvidia/nemotron-3-ultra-550b-a55b:free` (NVIDIA Nemotron 3 Ultra) on OpenRouter. Open weights (anyone can rerun it locally), free, reliable JSON. Chosen over Gemma 4 31B, whose free pool was rate-limited upstream. 14 days per request, top 20 headlines per day, temperature 0, fixed seed | The hybrid agent's news reader |
 | **Lexicon** | ~110 weighted words ("approval", "rally" / "hack", "ban") with a negation rule | The control: it cannot know the future |
 
 **Look-ahead guard in the prompt.** The prompt never contains a date (days are "Day 1…7") and tells the model to

@@ -169,8 +169,8 @@ python scripts/run_agent_evaluation.py tune   # optional: the 48-point preset gr
 
 macOS/Linux: `make agent` / `make tune`. Results: `reports/results/agent/*.csv`.
 
-**Scoring the news with the LLM (optional).** The LLM is `google/gemma-4-31b-it:free` on OpenRouter (free, open
-weights).
+**Scoring the news with the LLM (optional).** The LLM is `nvidia/nemotron-3-ultra-550b-a55b:free` (NVIDIA Nemotron 3 Ultra) on OpenRouter (free,
+open weights).
 
 1. Create a free account at openrouter.ai and an API key.
 2. Copy `.env.example` to `.env` and paste the key: `OPENROUTER_API_KEY=sk-or-...` (`.env` is never committed).
@@ -231,7 +231,7 @@ Agent design: [`docs/11_rule_based_agents.md`](docs/11_rule_based_agents.md) · 
 | **Alternative.me Fear & Greed API** | Daily crypto Fear & Greed index (sentiment analyst) |
 | **Hacker News search API** (Algolia) | Daily Bitcoin headlines 2022 → now for the news analyst (`src/data/news.py`) |
 | **GDELT DOC 2.0 API** | Alternative headline source (broader, but heavily rate-limited) |
-| **OpenRouter** (`google/gemma-4-31b-it:free`) | Open-weights LLM that scores each day's headlines (optional, cached) |
+| **OpenRouter** (`nvidia/nemotron-3-ultra-550b-a55b:free`) | Open-weights LLM that scores each day's headlines (optional, cached) |
 | **python-binance** | Client used to build the original frozen snapshot (`src/data/collect.py`) |
 | **requests** | HTTP calls for the incremental updater and live trading (`src/data/binance.py`) |
 
