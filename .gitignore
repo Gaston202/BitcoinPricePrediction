@@ -23,3 +23,14 @@ models/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Downloaded paper PDFs (copyrighted, keep local)
+references/papers/
+
+# Experiment logs
+logs/
+*.log
+
+# Full out-of-sample predictions (36 MB) stay local; predictions_slim.parquet is committed
+reports/results/multi_horizon/*_predictions.parquet
+reports/results/price_targets/*_predictions.parquet

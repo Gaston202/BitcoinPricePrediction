@@ -1,0 +1,247 @@
+{
+ "original": {
+  "features": [
+   "rv_168h",
+   "rv_24h",
+   "rv_ratio_day_week",
+   "down_move_24b",
+   "macd_signal",
+   "bb_width",
+   "hour_volume_spike",
+   "max_hour_share",
+   "vol_7d",
+   "mom_14d"
+  ],
+  "n_survivors": 32,
+  "val_mae_by_count": {
+   "10": 0.04195232645751416,
+   "15": 0.04213508034029074,
+   "20": 0.04205850990959456,
+   "30": 0.042033221414671855
+  },
+  "params": {
+   "ridge": {
+    "alpha": 0.0010745157949445052
+   },
+   "random_forest": {
+    "max_depth": 3,
+    "min_samples_leaf": 14,
+    "max_features": 1.0
+   },
+   "xgboost": {
+    "n_estimators": 100,
+    "max_depth": 1,
+    "learning_rate": 0.010369457014249545,
+    "min_child_weight": 77.0623676492848,
+    "reg_lambda": 0.016786575978500473
+   },
+   "lightgbm": {
+    "n_estimators": 400,
+    "num_leaves": 4,
+    "learning_rate": 0.008542378687494554,
+    "min_child_samples": 51,
+    "reg_lambda": 0.021966274569448246
+   }
+  },
+  "quantile_shift": {
+   "0.1": 0.009140265090757556,
+   "0.5": 0.002275041087869481,
+   "0.9": -0.01848743703471273
+  }
+ },
+ "2022_bear": {
+  "features": [
+   "rv_168h",
+   "vol_30d",
+   "rv_ratio_day_week",
+   "hour_volume_spike",
+   "macd_signal",
+   "bb_width",
+   "vol_7d",
+   "max_hour_share",
+   "rsi_14",
+   "mom_14d",
+   "mom7_x_volratio",
+   "dow_sin",
+   "roc_10",
+   "vol_ratio",
+   "obv_slope",
+   "hl_range_lag1",
+   "up_hours_share",
+   "macd_hist",
+   "mom_3",
+   "stoch_d",
+   "dow_cos",
+   "ret_last_4h",
+   "up_move_lag1",
+   "taker_buy_ratio",
+   "ret1_x_volz",
+   "body_ratio",
+   "is_weekend",
+   "stoch5_k",
+   "streak",
+   "ret_lag3"
+  ],
+  "n_survivors": 31,
+  "val_mae_by_count": {
+   "10": 0.06685461810271433,
+   "15": 0.06673362039569931,
+   "20": 0.06687790539141572,
+   "30": 0.0664408655491176
+  },
+  "params": {
+   "ridge": {
+    "alpha": 0.0010745157949445052
+   },
+   "random_forest": {
+    "max_depth": 3,
+    "min_samples_leaf": 10,
+    "max_features": "sqrt"
+   },
+   "xgboost": {
+    "n_estimators": 200,
+    "max_depth": 1,
+    "learning_rate": 0.009141912707776504,
+    "min_child_weight": 1.8426893888601628,
+    "reg_lambda": 0.04451561771852909
+   },
+   "lightgbm": {
+    "n_estimators": 600,
+    "num_leaves": 3,
+    "learning_rate": 0.006467610063968685,
+    "min_child_samples": 31,
+    "reg_lambda": 0.01957008076520722
+   }
+  },
+  "quantile_shift": {
+   "0.1": -0.014476605594887166,
+   "0.5": -0.013373741598724311,
+   "0.9": -0.01846252677756832
+  }
+ },
+ "2023_bull": {
+  "features": [
+   "hl_range_168b",
+   "vol_30d",
+   "rv_ratio_day_week",
+   "bb_width",
+   "macd_signal",
+   "hour_volume_spike",
+   "max_hour_share",
+   "vol_7d",
+   "rv_4h",
+   "rsi_14",
+   "roc_10",
+   "vol_ratio",
+   "mom_14d",
+   "mom7_x_volratio",
+   "obv_slope",
+   "macd_hist",
+   "dow_sin",
+   "hl_range_lag1",
+   "up_hours_share",
+   "mom_3",
+   "dow_cos",
+   "rsi_5",
+   "lower_wick",
+   "ret1_x_volz",
+   "ret_last_4h",
+   "ret_lag2",
+   "up_move_lag1",
+   "bb5_pct_b",
+   "is_weekend",
+   "down_move_lag1"
+  ],
+  "n_survivors": 31,
+  "val_mae_by_count": {
+   "10": 0.05554370164381973,
+   "15": 0.05515602540713322,
+   "20": 0.05493673636045049,
+   "30": 0.05406000543064694
+  },
+  "params": {
+   "ridge": {
+    "alpha": 956.6107130571331
+   },
+   "random_forest": {
+    "max_depth": 4,
+    "min_samples_leaf": 25,
+    "max_features": "sqrt"
+   },
+   "xgboost": {
+    "n_estimators": 100,
+    "max_depth": 1,
+    "learning_rate": 0.0637571218406555,
+    "min_child_weight": 42.699624965871884,
+    "reg_lambda": 0.08597881459201999
+   },
+   "lightgbm": {
+    "n_estimators": 400,
+    "num_leaves": 4,
+    "learning_rate": 0.008542378687494554,
+    "min_child_samples": 51,
+    "reg_lambda": 0.021966274569448246
+   }
+  },
+  "quantile_shift": {
+   "0.1": -0.00291533162164057,
+   "0.5": -0.014600036073536085,
+   "0.9": -0.040919367658979106
+  }
+ },
+ "2025_range": {
+  "features": [
+   "rv_168h",
+   "rv_24h",
+   "rv_ratio_day_week",
+   "down_move_24b",
+   "macd",
+   "bb_width",
+   "hour_volume_spike",
+   "vol_7d",
+   "max_hour_share",
+   "rsi_14",
+   "mom_14d",
+   "roc_10",
+   "vol_ratio",
+   "dow_sin",
+   "mom7_x_volratio"
+  ],
+  "n_survivors": 33,
+  "val_mae_by_count": {
+   "10": 0.04762377122502186,
+   "15": 0.04754666863215315,
+   "20": 0.04773952579314162,
+   "30": 0.04773067299378615
+  },
+  "params": {
+   "ridge": {
+    "alpha": 0.0010745157949445052
+   },
+   "random_forest": {
+    "max_depth": 4,
+    "min_samples_leaf": 174,
+    "max_features": 1.0
+   },
+   "xgboost": {
+    "n_estimators": 100,
+    "max_depth": 2,
+    "learning_rate": 0.016431650270305895,
+    "min_child_weight": 6.44598382328074,
+    "reg_lambda": 0.49444125424964974
+   },
+   "lightgbm": {
+    "n_estimators": 600,
+    "num_leaves": 3,
+    "learning_rate": 0.006467610063968685,
+    "min_child_samples": 31,
+    "reg_lambda": 0.01957008076520722
+   }
+  },
+  "quantile_shift": {
+   "0.1": 0.008506886257284695,
+   "0.5": 0.0053593063817932544,
+   "0.9": -0.00963489286795144
+  }
+ }
+}

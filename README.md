@@ -1,32 +1,55 @@
 # AI-Driven Bitcoin Portfolio Simulation System
 
+The project aims to predict cryptocurrency price movements; **Bitcoin (BTCUSDT) is the case study**.
 An ML model trained on historical Binance OHLCV data predicts the direction of Bitcoin's next price move.
 An AI agent combines those predictions with news sentiment and market indicators to make
 allocation decisions, and the strategy is evaluated through a historical backtest.
 
-The project follows **CRISP-DM**. Current status: **Phases 1-5 are complete** (Business Understanding,
-Data Understanding incl. EDA, Data Preparation / Feature Engineering, Modeling, and Evaluation), plus one
-modeling iteration. The model has **not** cleared the success criteria across multiple regimes — see
-"Evaluation" and "Modeling Iteration" below before assuming this is deployment-ready.
+The project follows **CRISP-DM**. Current status (2026-11-22): **Phases 1–5 are complete**, with four modeling
+iterations. The selected direction model is **1h, binary (up/down), LightGBM, Platt-calibrated**. It beats the
+majority, persistence **and reversal** baselines in 4/4 walk-forward windows, but its edge is small: about 54% hourly
+accuracy, 61% on the most confident 5%. Price alone gives **no daily direction edge**. Trading performance (the
+business criterion) is the agent's job and is not evaluated yet.
 
+
+> **New to the project?** Read [`docs/project_guide.pdf`](docs/project_guide.pdf): a 16-page beginner-friendly guide
+> from feature engineering to the final models, with every key figure explained.
 
 ## Quick start
-
-> **Step-by-step commands and the full list of tools used: [`HOW_TO_RUN.md`](HOW_TO_RUN.md).**
 
 Requires Python ≥ 3.11.
 
 ```bash
 python -m venv .venv
-source .venv/Scripts/activate      # Git Bash on Windows  (macOS/Linux: source .venv/bin/activate)
+source .venv/bin/activate           # Windows (Git Bash): source .venv/Scripts/activate
 pip install -r requirements.txt
 
-pytest                              # full suite: data, features, modeling, strategy, simulation, agent
-jupyter notebook notebooks/         # run 01 → 02 → 03 in order
+pytest                              # unit tests: gap policy, outliers, resampling, labels, features, baselines
+jupyter notebook notebooks/         # run the notebooks in order, 01 → 07
 ```
 
 The raw data snapshot is already in `data/raw/`, so **you do not need to download anything**.
-Notebook 02 regenerates the cleaned files in `data/interim/`.
+Notebook 02 regenerates the cleaned files in `data/interim/`, and notebook 04 the model-ready files in
+`data/processed/`, so run them before the later notebooks. To rerun everything headless:
+
+```bash
+for nb in notebooks/0*.ipynb; do jupyter nbconvert --to notebook --execute --inplace "$nb"; done
+```
+
+If Jupyter picks up the system Python instead of `.venv`, register the venv as a kernel and pass it:
+`python -m ipykernel install --user --name btc-venv`, then add `--ExecutePreprocessor.kernel_name=btc-venv`.
+
+Notebooks 05–07 read saved results from `reports/results/`. To regenerate them (about 5.7 h on 28 cores, one
+process per horizon × target):
+
+```bash
+BTC_N_JOBS=3 python scripts/run_multi_horizon_experiment.py --horizon 1h --targets binary   # etc. for 4h/1D, vol3/triple_barrier
+python scripts/run_multi_horizon_experiment.py --horizon 4h --smoke                         # quick check, 1 window
+python scripts/add_reversal_baseline.py                                                     # only for results from before 2026-11-22
+```
+
+**Midterm scope** (CRISP-DM Business Understanding → Feature Engineering): notebooks 01–04 and
+`docs/01`, `02`, `04`, `08`.
 
 ### Re-collecting data (optional)
 
@@ -44,39 +67,47 @@ No API key is needed. If you get **HTTP 451** (location blocked), use Binance's 
 data/
   raw/          frozen Binance snapshot (immutable, committed)
   interim/      cleaned 1h / 4h / 1D data (generated, gitignored)
-  processed/    model-ready features and train/val/test splits (generated, gitignored)
 docs/
   01_business_understanding.md   objectives, success criteria, decisions log
   02_data_understanding.md       data quality and EDA findings
-  04_data_preparation.md         label, features, chronological split, test-window regime
-  05_modeling.md                 candidate models, val/test results, business-read caveat
-  06_evaluation.md               formal check against the Phase 1 success criteria, go/no-go verdict
-  07_modeling_iteration.md       calibration fix + multi-regime walk-forward, revised verdict
-  08_trading_agent.md            agent policy, dashboard, paper-trading results and findings
+  04_data_preparation.md         label, split, 43 candidates, selection (16 kept) and why, PCA
+  05_modeling.md                 walk-forward protocol, targets, models, tuning, calibration
+  06_evaluation.md               baselines incl. reversal, revised criterion, calibration, stability, verdict
+  07_modeling_iteration.md       four iterations and the final model
+  08_conclusions.md              research questions, modeling results, limitations, roadmap
+  09_literature_review.md        41 papers: models, labels, intraday horizons, validation, leakage flags
+  10_modeling_handoff.md         2026-11-18 handoff (historical)
 notebooks/
   01_data_collection.ipynb       source, metadata, data dictionary
-  02_data_quality.ipynb          gaps, gap policy, resampling (EDA item 1)
-  03_eda.ipynb                   returns, normality, stationarity, ACF, correlation, target, baselines
-  04_feature_engineering.ipynb   label, features, chronological split, processed parquet output
-  05_modeling.ipynb              model selection, test evaluation, strategy backtest vs. buy-and-hold
-  06_evaluation.ipynb            data-mining and business success criteria checked against docs/01
-  07_modeling_iteration.ipynb    calibrated threshold + walk-forward test across bear/bull/range regimes
+  02_data_quality.ipynb          gaps, gap policy, outliers, resampling (EDA items 1, 5)
+  03_eda.ipynb                   returns, normality, stationarity, ACF, correlation, target, baselines,
+                                  Mann-Whitney test (volume vs. next-move size)
+  04_feature_engineering.ipynb   label, split, 43 candidates (22 original + 21 short-term), selection, PCA
+  05_modeling.ipynb              walk-forward protocol, targets, per-window features, 9 models, calibration, live rerun
+  06_evaluation.ipynb            baselines (incl. reversal), revised criterion, sign-AUC, calibration, stability
+  07_modeling_iteration.ipynb    four iterations, what changed and why, saved final model
 reports/figures/                 PNGs exported by the notebooks for the report
 src/
   config.py                      all constants (symbol, dates, gap threshold, fees)
   data/collect.py                Binance REST collector (pagination, retries, 451 fallback)
-  data/clean.py                  quality report and gap policy
+  data/clean.py                  quality report, gap policy, robust outlier flags
   features/returns.py            log returns, resampling, 3-class labels
-  features/engineering.py        lagged returns, volatility, ATR, volume features, chronological split
+  features/engineering.py        candidate features (lags, momentum, volatility, trend, volume, calendar,
+                                  interactions), chronological split
+  features/selection.py          train-only feature selection (ANOVA, MI, correlation) and PCA
   evaluation/baselines.py        majority, persistence, buy-and-hold metrics
   evaluation/strategy.py         predicted-label -> position backtest vs. buy-and-hold
   evaluation/criteria.py         formal yes/no checks against the docs/01 success criteria
-  modeling/train.py              candidate classifiers, feature/label split, evaluation,
-                                  calibrated decision-threshold tuning
+  features/short_term.py         fast indicators, candle shape, intraday-from-1h features, candidate_pool
+  features/targets.py            binary / vol-scaled 3-class / triple-barrier targets
+  modeling/train.py              9 candidate classifiers, ensembles, model-choice manifest
+  modeling/tuning.py             Optuna search spaces
+  modeling/multi_horizon.py      walk-forward: per-window selection, calibration, metrics, bootstrap, baselines
+  modeling/range_model.py        next-day high/low regression (HAR + ML), 1D
+  modeling/price_targets.py      next-bar high/low price levels with conformal bands, 5-day return (1h/4h)
+scripts/                         runnable experiments (direction, multi-horizon, range)
+reports/results/                 saved experiment outputs read by notebooks 05-07
   visualization/style.py         shared chart style
-  simulation.py                  trade-by-trade USD/BTC wallet simulator
-  agent/                         trading agent: model service, policy, Binance data, live/replay sessions
-dashboard/                       FastAPI admin dashboard (python -m dashboard) + static Chart.js front end
 tests/                           pytest suite
 ```
 
@@ -92,6 +123,9 @@ tests/                           pytest suite
 ## Key EDA findings
 
 * Returns have **fat tails** (excess kurtosis 16–37) and are **stationary**. Prices are not.
+* 49 extreme days (robust z-score > 5, e.g. the COVID crash) are real market events and are **kept**.
+* High-activity days are followed by bigger moves (Mann–Whitney p ≈ 2×10⁻⁷, small effect): volume
+  predicts the **size** of the next move, not its direction.
 * **Direction is barely predictable** from past returns (lag-1 autocorrelation ≈ −0.05).
   **Volatility is strongly predictable** (volatility clustering).
 * Recommended target: **1-day direction, θ = 1%** (typical daily move ≈ 7× the round-trip fee).
@@ -101,98 +135,52 @@ Details: [`docs/02_data_understanding.md`](docs/02_data_understanding.md).
 
 ## Data Preparation
 
-Label confirmed (1D direction, θ = 1%), features engineered (lagged returns, volatility/ATR, volume,
-taker-buy ratio), and a chronological, purged train/validation/test split applied. The test window
-(2025-07 → 2026-09) is a bear market (buy-and-hold Sharpe ≈ −0.33), which matters for how the final
-backtest should be read.
+Label kept at 1D direction, θ = 1%. The 22 original candidate features (lags, momentum, volatility/ATR, MA
+distance, RSI, relative volume, calendar, interactions) are joined by **21 new short-term indicators** (fast
+indicators, candle shape, intraday statistics from the 1h candles), giving 43 candidates. A chronological, purged
+train/validation/test split comes first. Selection on the training split then keeps **16 of 43**: 10 original
+and 6 new (`rv_168h`, `range_pct`, `rv_4h`, `ret_last_4h`, `close_location`, `mom_3`). It drops noise that fails
+both ANOVA and a shuffled-label MI test, and one of each pair with |ρ| > 0.85. A PCA variant (17 components, 91.2%
+of variance) is built for comparison. The multi-horizon models re-select features inside every walk-forward window
+instead (`notebooks/05`).
 
 Details: [`docs/04_data_preparation.md`](docs/04_data_preparation.md).
 
 ## Modeling
 
-Three classifiers (logistic regression, random forest, gradient boosting) trained on `train` and selected
-on `val`. **None beat the persistence baseline on macro-F1** — consistent with the EDA finding that 1D
-direction carries little learnable signal from price/volume features alone. The selected model's test-window
-backtest does outperform buy-and-hold (+8.4% vs. −24.9% return), but mostly by predicting "flat" 89% of the
-time against an actual 45% flat rate — i.e. sitting out of a bear market, not genuine directional skill.
+9 models (LR, RF, GB, XGBoost, LightGBM, SVM, kNN, soft voting, stacking) × 3 horizons × 3 targets (binary,
+volatility-scaled 3-class, triple barrier) × 4 walk-forward windows (2022 bear, 2023 bull, 2025 range, 2025-07 →
+2026-09). Optuna tuning, Platt calibration and class weights all use pre-window data only. A live rerun in notebook 05
+reproduces the saved metrics exactly.
 
 Details: [`docs/05_modeling.md`](docs/05_modeling.md).
 
 ## Evaluation
 
-Checked against the two criteria fixed in advance in `docs/01_business_understanding.md`:
+| Horizon | Direction skill (sign-AUC) | Beats majority + persistence + reversal | Lift over reversal significant |
+|---|---|---|---|
+| **1h** | 0.558 | 4/4 windows (8 of 9 models) | 3/4 windows |
+| 4h | 0.555 | 4/4 (best model) | 1–2/4 |
+| 1D | ≤ 0.53 | ≤ 2/4 | 0/4 |
 
-| Criterion | Status |
-|---|---|
-| Data-mining success (beat both baselines on macro-F1 **and** ROC-AUC) | **Not met** — wins on ROC-AUC (0.58 vs. 0.52/0.50), loses to persistence on macro-F1 |
-| Business success (beat buy-and-hold on Sharpe, net of fees) | **Technically met**, but driven by the model sitting in cash ~89% of the time during a bear-market test window, not demonstrated skill |
+**Next-bar high/low price levels** (1h and 4h) also beat their baselines: HAR is 2–7% better than the 20-bar average
+move, and calibrated 10/90% bands are breached 8.7–9.9% of the time (target 10%), ready for stops and take-profits.
+A 5-day return forecast showed no edge.
 
-**Recommendation: not ready for Deployment (Phase 6) as-is.** A business-criterion pass on a single
-bear-market window is exactly the false positive flagged as a risk in `docs/01`. Next: re-test across a
-bull and a range-bound window, and address the AUC/F1 mismatch (likely a decision-threshold/calibration
-issue) before feeding this into the full agent.
+Short-term BTC return signs mean-revert, so "bet against the last bar" was added as a baseline (2026-11-22).
+Most of the apparent intraday skill is that effect; the model's own edge beyond it is about 1–1.5 macro-F1 points
+at 1h, stable across all 17 quarterly refits. The probabilities are well calibrated (ECE ≤ 0.04). Triple-barrier
+models predict volatility, not direction.
 
 Details: [`docs/06_evaluation.md`](docs/06_evaluation.md).
 
 ## Modeling Iteration
 
-Both issues above were addressed directly — and neither turned out to be fixable this way:
+Four iterations: midterm 1D models (failed against persistence) → calibrated walk-forward (1/4 windows) → 9 tuned
+models on 1D (4/4 vs persistence, but no reversal check) → multi-horizon with per-window selection and the reversal
+baseline. Final model saved in `src/modeling/selected_model.json`.
 
-* **Calibrated decision threshold** (`tune_class_weights`/`weighted_predict`, tuned on validation only):
-  closes the macro-F1 gap in only 2 of 4 tested windows, by ~0.01 — not a reliable fix.
-* **Walk-forward test across regimes** (2022 bear, 2023 bull, 2025 range, plus the original window, all
-  retrained fresh per window): the earlier business-criterion "win" **disappears** once the model is
-  forced to take more directional positions — the original window now *underperforms* buy-and-hold
-  (Sharpe −0.44 vs −0.33). Across regimes the strategy wins in bear/range markets but **badly lags in the
-  bull-market window** (2023: strategy +28.5% vs. buy-and-hold +154.0%).
+A fifth iteration added next-bar high/low price levels with conformal bands (`src/modeling/selected_price_model.json`).
+Next: the agent, which adds news and macro data and trades selectively, judged on Sharpe net of fees.
 
-**Still not ready for Deployment.** This is a stronger confirmation of the EDA's original warning than
-the first-pass Phase 4/5 result suggested: price/volume features alone do not produce a regime-robust
-directional edge. The project's own design already treats the ML model as one input to an agent that also
-uses news sentiment and market indicators — this result suggests those are not optional extras.
-
-Details: [`docs/07_modeling_iteration.md`](docs/07_modeling_iteration.md).
-
-## Admin Dashboard & AI Trading Agent
-
-```bash
-pip install -r requirements.txt
-python -m dashboard               # opens http://127.0.0.1:8000
-```
-
-* **Overview** - dataset stats, BTC price history with the train/val/test split, 30-day volatility,
-  model vs. baselines, confusion matrix, predicted vs. actual class mix, feature importance, and the
-  agent's backtest vs. buy-and-hold on the unseen test window.
-* **AI Trading** - press **Start AI trading** to give the agent a $1,000 paper wallet:
-  * *Replay* walks through the unseen test window candle by candle (1D or 1h, adjustable speed);
-  * *Live* uses the real Binance BTC price right now (needs internet).
-
-  Real-time charts show the real price vs. the AI's forecast with buy/sell markers, the wallet vs.
-  buy-and-hold, the AI's current probabilities, and a decision log with the reason for every action.
-  Stop-loss, take-profit, minimum confidence and fee-aware buying are adjustable.
-* **Report figures** - every PNG from `reports/figures/`.
-
-The first start trains the agent's models (a few seconds) and caches them in `models/` (gitignored).
-Result: on the test window the agent loses less than buy-and-hold (−20.2% vs −24.9%) but does not make
-money. Details and findings: [`docs/08_trading_agent.md`](docs/08_trading_agent.md).
-
-## Portfolio Simulation
-
-The repository includes an offline, trade-by-trade simulator in
-[`src/simulation.py`](src/simulation.py). It accepts an already-loaded local
-price frame and signal series, starts with $1,000 cash and no BTC, applies the
-configured per-side fee, and records the cash, BTC, and marked-to-market
-portfolio value at every timestamp. Signals are `1` (buy), `-1` or `0` (sell),
-and `"HOLD"` (maintain the current position).
-
-Run the local demo after the generated interim and processed files exist:
-
-```bash
-jupyter notebook notebooks/simulation_demo.ipynb
-```
-
-The demo trains the existing random-forest model using only local train
-features, predicts the local test split, joins those predictions to the local
-cleaned daily close data, and plots the strategy equity curve against a
-fee-adjusted $1,000 buy-and-hold baseline. It does not call Binance or any
-other external API.
+Details: [`docs/07_modeling_iteration.md`](docs/07_modeling_iteration.md), [`docs/08_conclusions.md`](docs/08_conclusions.md).

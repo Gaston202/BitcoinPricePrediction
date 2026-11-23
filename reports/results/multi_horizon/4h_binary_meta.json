@@ -1,0 +1,299 @@
+{
+ "original": {
+  "k": null,
+  "features": [
+   "mom_30d",
+   "streak",
+   "stoch5_k",
+   "ema3_8_cross",
+   "obv_slope",
+   "rv_4h",
+   "bop",
+   "lower_wick",
+   "up_hours_share",
+   "close_location"
+  ],
+  "n_survivors": 17,
+  "val_logloss_by_count": {
+   "10": 0.692636667845592,
+   "15": 0.6938133118688141,
+   "17": 0.6930653860988317
+  },
+  "params": {
+   "logistic_regression": {
+    "C": 0.002134206930933178
+   },
+   "random_forest": {
+    "n_estimators": 300,
+    "max_depth": 8,
+    "min_samples_leaf": 58,
+    "max_features": 0.5
+   },
+   "gradient_boosting": {
+    "n_estimators": 300,
+    "max_depth": 2,
+    "learning_rate": 0.011602630350495757,
+    "subsample": 0.8191037984986677
+   },
+   "xgboost": {
+    "n_estimators": 150,
+    "max_depth": 3,
+    "learning_rate": 0.020479567308136527,
+    "subsample": 0.9737619048456195,
+    "colsample_bytree": 0.6866788349058143,
+    "min_child_weight": 9.632398358878108,
+    "reg_lambda": 0.011319857687681309
+   },
+   "lightgbm": {
+    "n_estimators": 50,
+    "num_leaves": 4,
+    "learning_rate": 0.010624408033089033,
+    "min_child_samples": 69,
+    "subsample": 0.8890783754749252,
+    "colsample_bytree": 0.9350060741234096,
+    "reg_lambda": 8.626905220714901
+   },
+   "svm": {
+    "C": 0.04567581429649482,
+    "gamma": 0.8671943221740143
+   },
+   "knn": {
+    "n_neighbors": 125,
+    "weights": "distance"
+   }
+  },
+  "label_shares_train": {
+   "1.0": 0.5144,
+   "-1.0": 0.4856
+  }
+ },
+ "2022_bear": {
+  "k": null,
+  "features": [
+   "streak",
+   "stoch_d",
+   "rv_168h",
+   "vol_ratio",
+   "rsi_3",
+   "rv_ratio_day_week",
+   "max_hour_share",
+   "mom_14d",
+   "ret1_x_volz",
+   "mom_3",
+   "bop",
+   "roc_10",
+   "macd_hist",
+   "upper_wick",
+   "up_hours_share",
+   "hour_cos",
+   "taker_buy_ratio",
+   "mom_7d",
+   "close_location",
+   "ret_last_1h"
+  ],
+  "n_survivors": 20,
+  "val_logloss_by_count": {
+   "10": 0.6939923609956603,
+   "15": 0.69251755204764,
+   "20": 0.6864528662479161
+  },
+  "params": {
+   "logistic_regression": {
+    "C": 0.0021951653708679035
+   },
+   "random_forest": {
+    "n_estimators": 200,
+    "max_depth": 5,
+    "min_samples_leaf": 24,
+    "max_features": 0.5
+   },
+   "gradient_boosting": {
+    "n_estimators": 100,
+    "max_depth": 4,
+    "learning_rate": 0.09107717646415749,
+    "subsample": 0.9517160266763963
+   },
+   "xgboost": {
+    "n_estimators": 350,
+    "max_depth": 4,
+    "learning_rate": 0.018771209319613777,
+    "subsample": 0.9849922416237264,
+    "colsample_bytree": 0.7690251647031914,
+    "min_child_weight": 4.451672874428131,
+    "reg_lambda": 7.670060958317543
+   },
+   "lightgbm": {
+    "n_estimators": 400,
+    "num_leaves": 10,
+    "learning_rate": 0.018668047273743826,
+    "min_child_samples": 65,
+    "subsample": 0.8434095428884257,
+    "colsample_bytree": 0.8383400039094673,
+    "reg_lambda": 0.3986428249715767
+   },
+   "svm": {
+    "C": 6.655060722282691,
+    "gamma": 0.0021978068087832063
+   },
+   "knn": {
+    "n_neighbors": 130,
+    "weights": "distance"
+   }
+  },
+  "label_shares_train": {
+   "1.0": 0.5204,
+   "-1.0": 0.4796
+  }
+ },
+ "2023_bull": {
+  "k": null,
+  "features": [
+   "streak",
+   "mom_30d",
+   "bop",
+   "ret_last_1h",
+   "rsi_5",
+   "rv_ratio_day_week",
+   "stoch5_k",
+   "up_hours_share",
+   "mom_7d",
+   "upper_wick",
+   "mom_3",
+   "hour_cos",
+   "macd_hist",
+   "roc_10",
+   "mom_14d",
+   "taker_buy_ratio",
+   "close_location"
+  ],
+  "n_survivors": 17,
+  "val_logloss_by_count": {
+   "10": 0.6888581374461861,
+   "15": 0.6889385884888147,
+   "17": 0.6871359219136784
+  },
+  "params": {
+   "logistic_regression": {
+    "C": 0.25766385746135895
+   },
+   "random_forest": {
+    "n_estimators": 200,
+    "max_depth": 8,
+    "min_samples_leaf": 60,
+    "max_features": 0.5
+   },
+   "gradient_boosting": {
+    "n_estimators": 250,
+    "max_depth": 3,
+    "learning_rate": 0.08041830254619718,
+    "subsample": 0.8985879760149968
+   },
+   "xgboost": {
+    "n_estimators": 100,
+    "max_depth": 3,
+    "learning_rate": 0.04352939666082771,
+    "subsample": 0.68618931423293,
+    "colsample_bytree": 0.638614375670542,
+    "min_child_weight": 1.3616519284411526,
+    "reg_lambda": 0.6751495644325016
+   },
+   "lightgbm": {
+    "n_estimators": 100,
+    "num_leaves": 5,
+    "learning_rate": 0.06987005608741674,
+    "min_child_samples": 29,
+    "subsample": 0.5667446801996541,
+    "colsample_bytree": 0.5984848855946795,
+    "reg_lambda": 0.7856382918239194
+   },
+   "svm": {
+    "C": 1.5975328886400224,
+    "gamma": 0.10179451847147203
+   },
+   "knn": {
+    "n_neighbors": 50,
+    "weights": "uniform"
+   }
+  },
+  "label_shares_train": {
+   "1.0": 0.5166,
+   "-1.0": 0.4834
+  }
+ },
+ "2025_range": {
+  "k": null,
+  "features": [
+   "mom_30d",
+   "rv_4h",
+   "williams_r",
+   "stoch5_k",
+   "lower_wick",
+   "ret_last_1h",
+   "ret_lag1",
+   "close_location",
+   "up_hours_share",
+   "streak",
+   "roc_10",
+   "mom_3",
+   "taker_buy_ratio",
+   "macd_hist",
+   "vol_ratio",
+   "rsi_14",
+   "upper_wick",
+   "hour_cos"
+  ],
+  "n_survivors": 18,
+  "val_logloss_by_count": {
+   "10": 0.6923859288083872,
+   "15": 0.6896691020094412,
+   "18": 0.6876273639342123
+  },
+  "params": {
+   "logistic_regression": {
+    "C": 0.00388106502400377
+   },
+   "random_forest": {
+    "n_estimators": 500,
+    "max_depth": 6,
+    "min_samples_leaf": 5,
+    "max_features": 1.0
+   },
+   "gradient_boosting": {
+    "n_estimators": 200,
+    "max_depth": 3,
+    "learning_rate": 0.010478723624889802,
+    "subsample": 0.8176627440676654
+   },
+   "xgboost": {
+    "n_estimators": 50,
+    "max_depth": 2,
+    "learning_rate": 0.05199624281228391,
+    "subsample": 0.9435357242825031,
+    "colsample_bytree": 0.5208929603771625,
+    "min_child_weight": 18.877000787237165,
+    "reg_lambda": 0.021274352729998496
+   },
+   "lightgbm": {
+    "n_estimators": 150,
+    "num_leaves": 6,
+    "learning_rate": 0.010009559693537428,
+    "min_child_samples": 68,
+    "subsample": 0.5980272958599614,
+    "colsample_bytree": 0.7130825726763468,
+    "reg_lambda": 0.8704225943647684
+   },
+   "svm": {
+    "C": 0.07493150162565311,
+    "gamma": 0.0555544077225185
+   },
+   "knn": {
+    "n_neighbors": 125,
+    "weights": "uniform"
+   }
+  },
+  "label_shares_train": {
+   "1.0": 0.515,
+   "-1.0": 0.485
+  }
+ }
+}

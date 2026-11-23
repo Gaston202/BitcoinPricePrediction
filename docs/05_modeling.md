@@ -1,76 +1,67 @@
 # CRISP-DM Phase 4 — Modeling
 
-Full analysis with code and figures: `notebooks/05_modeling.ipynb`.
-Figures for the report: `reports/figures/05_*.png`. Implementation: `src/modeling/train.py`, `src/evaluation/strategy.py`.
+Rewritten 2026-11-22. Code and figures: `notebooks/05_modeling.ipynb`. Implementation:
+`src/modeling/multi_horizon.py`, `src/modeling/train.py`, `src/modeling/tuning.py`, `src/features/targets.py`.
+Runner: `scripts/run_multi_horizon_experiment.py` (results in `reports/results/multi_horizon/`).
 
-## 1. Candidates and selection
+## 1. Walk-forward protocol
 
-Three classifiers trained on `train`, selected on `val` only (`test` untouched until §3):
+There are four test windows (from `03_eda.ipynb` item 12): `2022_bear`, `2023_bull`, `2025_range` and `original`
+(2025-07-09 → 2026-09-29). For each window, all earlier rows are split 85/15 into inner train and inner validation,
+with a one-bar embargo at each boundary. The window itself is scored once. Example, 1h `original`: inner train
+2017-08 → 2024-05 (57k bars), inner validation 2024-05 → 2025-07 (10k bars), test 10.7k bars.
 
-| Model | Val accuracy | Val macro-F1 |
+## 2. Targets (all one bar ahead)
+
+| Target | Classes | Rule |
 |---|---|---|
-| majority baseline | 0.413 | 0.195 |
-| persistence baseline | 0.337 | **0.327** |
-| logistic regression | 0.413 | 0.306 |
-| random forest | 0.410 | 0.318 |
-| gradient boosting | 0.406 | 0.293 |
+| `binary` | down / up | Sign of the next bar's log return |
+| `vol3` | down / flat / up | Flat if the return is within ±*k*σₜ. σₜ = rolling std of past bar returns (30 days for 1D, 1 week for 4h/1h) |
+| `triple_barrier` | down / flat / up | On the next bar's 1h path: up if `close·exp(kσₜ)` is touched first, down if `close·exp(−kσₜ)` is, flat if neither is touched before the bar ends |
 
-**Best candidate: random forest** — but it does **not** beat the persistence baseline on macro-F1. None of
-the three candidates do. This is the honest, expected outcome given EDA finding 10 (`docs/02`): no raw
-variable linearly predicts direction, and nothing in this feature set changes that conclusion.
+*k* is set on inner train so that about a third of the rows are flat. It is never tuned for profit. In practice it
+came out the same in almost every window: 0.30 for `vol3` and 0.70–0.80 for `triple_barrier`.
 
-## 2. Final test evaluation (first and only look at `test`)
+## 3. Models
 
-| | Test accuracy | Test macro-F1 |
+Logistic regression, random forest, sklearn gradient boosting, XGBoost (binary objective for 2 classes), LightGBM,
+RBF-SVM, kNN, soft voting, and stacking (LR + RF + LightGBM + SVM). For 1h and 4h, the single-threaded models train
+on their most recent rows only: SVM 10k, kNN and GB 20k. On 20k rows, one SVM fit took 78 s and one GB fit 37 s. A
+GPU did not help: XGBoost took 0.46 s for 60k rows on both CPU and CUDA, and the installed LightGBM has no GPU build.
+
+## 4. Tuning and calibration
+
+Optuna TPE (seed 0): 50 trials for 1D and 25 for 4h/1h, maximising inner-validation macro-F1. The tuned model is fit
+on inner train, then **Platt-calibrated** on inner validation. Class weights are tuned on the same rows, using the
+calibrated probabilities. Both variants are scored: raw (uncalibrated argmax) and cal (Platt + weights).
+
+## 5. Reproducibility
+
+Notebook 05 reruns one cell of the experiment from scratch (1h, binary, LightGBM, `original`) in about 95 s. It
+selects the same 10 features and reproduces every saved metric to 4 decimals (macro-F1 0.5256, sign-AUC 0.5421,
+ECE 0.0118).
+
+## 6. Next-bar high/low price levels (1h, 4h)
+
+Code: `src/modeling/price_targets.py`, runner `scripts/run_price_targets_experiment.py`, results in
+`reports/results/price_targets/`.
+
+| Target | Definition | Output |
 |---|---|---|
-| majority baseline | 0.451 | 0.207 |
-| persistence baseline | 0.380 | **0.356** |
-| random forest (selected) | 0.471 | 0.302 |
+| `high_next` | log(high[t+1] / close[t]) | predicted high = close[t] · exp(prediction) |
+| `low_next` | log(low[t+1] / close[t]) | predicted low = close[t] · exp(prediction) |
 
-Random forest beats majority on raw accuracy, but like on `val`, it does **not** clear the persistence
-baseline on macro-F1, which is the metric that actually matters here (accuracy is misleading on an
-imbalanced 3-class target — see `docs/02` finding 12).
+- Models train on the distance from the close, because tree models cannot predict prices outside their training
+  range. The prediction converts back to an exact price level.
+- **Features:** the candidate pool plus bar-scale range features: the last bar's up/down move and range, and their
+  averages over the last day and the last week (1/24/168 bars on 1h, 1/6/42 on 4h). These are the HAR inputs.
+  Features are re-selected inside every window (F-test + MI noise filter, |ρ| > 0.85, count chosen on validation MAE).
+- **Models:** HAR, Ridge, random forest, XGBoost, LightGBM (25 Optuna trials, validation MAE).
+- **Bands:** LightGBM quantile regression at 10/50/90%, plus a split-conformal shift on inner validation, so that
+  each level's breach rate matches its promise.
+- The same machinery was run for the 5-day return (120 bars on 1h, 30 on 4h, 5-day embargo). It has no edge (`docs/06` §8).
 
-## 3. Business read: strategy vs. buy-and-hold on the test window
+## 7. Runtime
 
-| | Total return | Sharpe | Max drawdown |
-|---|---|---|---|
-| random forest strategy | **+8.4%** | **0.40** | **−17.1%** |
-| buy-and-hold | −24.9% | −0.33 | −53.0% |
-
-At face value this looks like a clear win. **It is not evidence of predictive skill.** The model predicts
-"flat" on 89% of test days, versus an actual flat rate of 45%:
-
-| | down | flat | up |
-|---|---|---|---|
-| predicted | 4.0% | 89.3% | 6.7% |
-| actual | 29.0% | 45.1% | 25.9% |
-
-The strategy wins because it is in the market only ~11% of the time during a window that happened to be a
-bear market (buy-and-hold Sharpe −0.33, flagged in `docs/04_data_preparation.md` as an open risk). Sitting
-mostly in cash dodges the drawdown; it does not demonstrate the model learned direction. This is exactly
-the caveat `03_eda.ipynb` item 12 raised in advance: *"A strategy that is mostly in cash can beat
-buy-and-hold in a bear-market test year without being 'smart'."*
-
-## 4. Conclusion
-
-| Criterion | Result |
-|---|---|
-| Data-mining success criterion (beat persistence macro-F1) | **Not met** |
-| Business success criterion (beat buy-and-hold on this window) | Met, but attributable to low market exposure, not direction skill |
-
-This feature set and these three model families do not extract a usable directional signal beyond what
-`03_eda.ipynb` already found: 1D direction is close to unpredictable with raw/engineered price-volume
-features alone. The result is still useful — it is the honest ML-leg baseline the rest of the project
-(news sentiment, market indicators, the full agent) needs to beat, and it rules out "just add a classifier"
-as sufficient on its own.
-
-## 5. Options for the next iteration
-
-1. Treat this as the baseline and proceed to the full agent (news sentiment + market indicators per the
-   README) — the business case may still work if the agent's other inputs add real signal.
-2. Revisit the label: re-run EDA item 11 with a different horizon/threshold (e.g. 4h/θ=0.5%, the fallback
-   noted in `docs/02`) to see if a different target is more learnable.
-3. Address the "always flat" shortcut directly — e.g. a cost-sensitive loss or class-balanced threshold
-   tuning that penalizes collapsing to the majority-adjacent class, rather than relying on `class_weight`
-   alone.
+Per target: 8–19 min for 1D, 1.6–2.9 h for 4h, 2.7–5.7 h for 1h (triple barrier is the slowest). The 9 horizon ×
+target runs ran in parallel with 3 threads each, about 5.7 h in total. High/low: 16 min (4h) and 52 min (1h).

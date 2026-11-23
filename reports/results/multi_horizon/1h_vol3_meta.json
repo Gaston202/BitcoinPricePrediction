@@ -1,0 +1,352 @@
+{
+ "original": {
+  "k": 0.3,
+  "features": [
+   "dow_sin",
+   "rv_ratio_day_week",
+   "rsi_14",
+   "rv_4h",
+   "mom_7d",
+   "range_pct",
+   "is_weekend",
+   "macd",
+   "rv_168h",
+   "ret_lag1",
+   "stoch_d",
+   "vol_30d",
+   "stoch5_k",
+   "roc_10",
+   "vol_14d",
+   "volume_ratio",
+   "ret_last_4h",
+   "streak",
+   "mom_3",
+   "ret_lag2",
+   "ret_lag3",
+   "vol_ratio",
+   "hour_sin",
+   "ret1_x_volz",
+   "taker_buy_ratio",
+   "close_location",
+   "lower_wick",
+   "macd_hist",
+   "up_hours_share",
+   "upper_wick"
+  ],
+  "n_survivors": 36,
+  "val_logloss_by_count": {
+   "10": 1.069608999082863,
+   "15": 1.0703623327455234,
+   "20": 1.0692148325521524,
+   "30": 1.0650551788541573
+  },
+  "params": {
+   "logistic_regression": {
+    "C": 0.006205786779805207
+   },
+   "random_forest": {
+    "n_estimators": 200,
+    "max_depth": 8,
+    "min_samples_leaf": 56,
+    "max_features": 0.5
+   },
+   "gradient_boosting": {
+    "n_estimators": 200,
+    "max_depth": 3,
+    "learning_rate": 0.03709488999964028,
+    "subsample": 0.9458865003910399
+   },
+   "xgboost": {
+    "n_estimators": 250,
+    "max_depth": 3,
+    "learning_rate": 0.12194406548768442,
+    "subsample": 0.9542934250188653,
+    "colsample_bytree": 0.9329138627461272,
+    "min_child_weight": 3.8553621702394243,
+    "reg_lambda": 0.7026519192218956
+   },
+   "lightgbm": {
+    "n_estimators": 350,
+    "num_leaves": 4,
+    "learning_rate": 0.08234709139415422,
+    "min_child_samples": 29,
+    "subsample": 0.8803795049794988,
+    "colsample_bytree": 0.6596912963688633,
+    "reg_lambda": 0.31666904871420226
+   },
+   "svm": {
+    "C": 0.32851581573847566,
+    "gamma": 0.01489242041539749
+   },
+   "knn": {
+    "n_neighbors": 110,
+    "weights": "uniform"
+   }
+  },
+  "label_shares_train": {
+   "0.0": 0.357,
+   "1.0": 0.3303,
+   "-1.0": 0.3127
+  }
+ },
+ "2022_bear": {
+  "k": 0.3,
+  "features": [
+   "rv_ratio_day_week",
+   "mom_30d",
+   "bb_pct_b",
+   "mom_3",
+   "ret_lag1",
+   "atr_14",
+   "stoch5_k",
+   "mom7_x_volratio",
+   "rv_4h",
+   "max_hour_share",
+   "range_pct",
+   "bb_width",
+   "is_weekend",
+   "rv_168h",
+   "taker_buy_ratio",
+   "obv_slope",
+   "ret_lag2",
+   "close_location",
+   "roc_10",
+   "streak",
+   "mfi_14",
+   "macd_hist",
+   "hour_cos",
+   "volume_ratio",
+   "up_hours_share",
+   "upper_wick",
+   "vol_ratio",
+   "dow_sin",
+   "lower_wick",
+   "ret_last_4h"
+  ],
+  "n_survivors": 31,
+  "val_logloss_by_count": {
+   "10": 1.0914170367645328,
+   "15": 1.0906529586730098,
+   "20": 1.0897502754834845,
+   "30": 1.0865850114020565
+  },
+  "params": {
+   "logistic_regression": {
+    "C": 0.030988169884549596
+   },
+   "random_forest": {
+    "n_estimators": 400,
+    "max_depth": 8,
+    "min_samples_leaf": 46,
+    "max_features": "sqrt"
+   },
+   "gradient_boosting": {
+    "n_estimators": 400,
+    "max_depth": 4,
+    "learning_rate": 0.03984726267151497,
+    "subsample": 0.8902645881432277
+   },
+   "xgboost": {
+    "n_estimators": 350,
+    "max_depth": 2,
+    "learning_rate": 0.19999406785347856,
+    "subsample": 0.7472792839159627,
+    "colsample_bytree": 0.7870753483724172,
+    "min_child_weight": 12.30224660457573,
+    "reg_lambda": 3.4710780386726845
+   },
+   "lightgbm": {
+    "n_estimators": 250,
+    "num_leaves": 12,
+    "learning_rate": 0.060843366042818384,
+    "min_child_samples": 48,
+    "subsample": 0.7118273996694524,
+    "colsample_bytree": 0.8229470565333281,
+    "reg_lambda": 0.20547625125911342
+   },
+   "svm": {
+    "C": 3.77064817545236,
+    "gamma": 0.002028937846911597
+   },
+   "knn": {
+    "n_neighbors": 100,
+    "weights": "distance"
+   }
+  },
+  "label_shares_train": {
+   "0.0": 0.3568,
+   "1.0": 0.3334,
+   "-1.0": 0.3099
+  }
+ },
+ "2023_bull": {
+  "k": 0.3,
+  "features": [
+   "dist_ma20",
+   "close_location",
+   "macd_signal",
+   "bb_width",
+   "dow_sin",
+   "rv_ratio_day_week",
+   "taker_buy_ratio",
+   "obv_slope",
+   "stoch5_k",
+   "rv_4h",
+   "rv_24h",
+   "ret_lag3",
+   "streak",
+   "mom7_x_volratio",
+   "ret_lag2",
+   "volume_ratio",
+   "up_hours_share",
+   "range_pct",
+   "upper_wick",
+   "ret_last_1h"
+  ],
+  "n_survivors": 31,
+  "val_logloss_by_count": {
+   "10": 1.0738448625950332,
+   "15": 1.0713349024341159,
+   "20": 1.0696338265511594,
+   "30": 1.0697239319697005
+  },
+  "params": {
+   "logistic_regression": {
+    "C": 0.0025289209984359342
+   },
+   "random_forest": {
+    "n_estimators": 500,
+    "max_depth": 8,
+    "min_samples_leaf": 48,
+    "max_features": "sqrt"
+   },
+   "gradient_boosting": {
+    "n_estimators": 250,
+    "max_depth": 3,
+    "learning_rate": 0.060843366042818384,
+    "subsample": 0.7724415914984484
+   },
+   "xgboost": {
+    "n_estimators": 300,
+    "max_depth": 2,
+    "learning_rate": 0.1802268511149838,
+    "subsample": 0.5685663905274901,
+    "colsample_bytree": 0.8312450862250078,
+    "min_child_weight": 1.73214677158002,
+    "reg_lambda": 0.9266715723729617
+   },
+   "lightgbm": {
+    "n_estimators": 350,
+    "num_leaves": 4,
+    "learning_rate": 0.017521643067886013,
+    "min_child_samples": 24,
+    "subsample": 0.6472466156822947,
+    "colsample_bytree": 0.9896221440364111,
+    "reg_lambda": 3.339854601633178
+   },
+   "svm": {
+    "C": 0.896817497772409,
+    "gamma": 0.020529439332422794
+   },
+   "knn": {
+    "n_neighbors": 105,
+    "weights": "distance"
+   }
+  },
+  "label_shares_train": {
+   "0.0": 0.3494,
+   "1.0": 0.3355,
+   "-1.0": 0.3151
+  }
+ },
+ "2025_range": {
+  "k": 0.3,
+  "features": [
+   "rv_ratio_day_week",
+   "range_pct",
+   "is_weekend",
+   "mom7_x_volratio",
+   "roc_10",
+   "rv_4h",
+   "vol_30d",
+   "dow_sin",
+   "ret_last_4h",
+   "rsi_3",
+   "hour_cos",
+   "rsi_14",
+   "rv_168h",
+   "macd",
+   "mom_3",
+   "hour_sin",
+   "ret_lag1",
+   "stoch_k",
+   "ret_lag2",
+   "ret_lag3",
+   "volume_ratio",
+   "close_location",
+   "bb_width",
+   "taker_buy_ratio",
+   "vol_ratio",
+   "up_hours_share",
+   "macd_hist",
+   "lower_wick",
+   "obv_slope",
+   "mfi_14"
+  ],
+  "n_survivors": 34,
+  "val_logloss_by_count": {
+   "10": 1.0696048622139358,
+   "15": 1.0645343046529805,
+   "20": 1.0638727357949787,
+   "30": 1.063003530027313
+  },
+  "params": {
+   "logistic_regression": {
+    "C": 0.001273349472817556
+   },
+   "random_forest": {
+    "n_estimators": 400,
+    "max_depth": 8,
+    "min_samples_leaf": 57,
+    "max_features": "sqrt"
+   },
+   "gradient_boosting": {
+    "n_estimators": 200,
+    "max_depth": 3,
+    "learning_rate": 0.05572849128875944,
+    "subsample": 0.8323070695613346
+   },
+   "xgboost": {
+    "n_estimators": 400,
+    "max_depth": 4,
+    "learning_rate": 0.03154052496956797,
+    "subsample": 0.8958625190413323,
+    "colsample_bytree": 0.7644474598764522,
+    "min_child_weight": 5.4833126937909515,
+    "reg_lambda": 5.981221901152554
+   },
+   "lightgbm": {
+    "n_estimators": 150,
+    "num_leaves": 10,
+    "learning_rate": 0.037207777131480206,
+    "min_child_samples": 80,
+    "subsample": 0.551022405374014,
+    "colsample_bytree": 0.6044383780474174,
+    "reg_lambda": 0.030473936177363888
+   },
+   "svm": {
+    "C": 0.010628223064808422,
+    "gamma": 0.03235864953936137
+   },
+   "knn": {
+    "n_neighbors": 115,
+    "weights": "uniform"
+   }
+  },
+  "label_shares_train": {
+   "0.0": 0.3586,
+   "1.0": 0.3291,
+   "-1.0": 0.3123
+  }
+ }
+}

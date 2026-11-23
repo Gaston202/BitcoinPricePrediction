@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from src import config
-from src.data.clean import fill_gaps, find_gaps, quality_report
+from src.data.clean import fill_gaps, find_gaps, flag_outliers, quality_report, robust_zscore
 
 
 def make_candles(hours: list[int]) -> pd.DataFrame:
@@ -65,3 +65,17 @@ def test_quality_report_flags_ohlc_violation():
     assert report["ohlc_violations"] == 1
     assert report["missing_rows"] == 0
     assert report["completeness_pct"] == pytest.approx(100.0)
+
+
+def test_robust_zscore_ignores_a_single_extreme_value():
+    s = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0, 1000.0])
+    z = robust_zscore(s)
+    # Median/MAD are barely moved by the extreme point, so the normal values stay near 0.
+    assert z.iloc[:5].abs().max() < 2
+    assert z.iloc[5] > 100
+
+
+def test_flag_outliers_marks_only_extremes_and_never_nan():
+    s = pd.Series([0.01, -0.01, 0.02, -0.02, 0.0, 0.5, np.nan])
+    flags = flag_outliers(s, threshold=5)
+    assert flags.tolist() == [False, False, False, False, False, True, False]

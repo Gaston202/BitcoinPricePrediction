@@ -2,18 +2,38 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.features.engineering import (average_true_range, build_features, chronological_split,
-                                      lagged_returns, rolling_volatility, volume_features)
-from src.features.returns import log_returns
+from src.features.engineering import (average_true_range, build_features, calendar_features,
+                                      chronological_split, interaction_features, lagged_returns,
+                                      momentum, rolling_volatility, rsi, trend_features,
+                                      volume_features)
 from tests.test_clean import make_candles
 
 
-def test_lagged_returns_shifts_match_log_returns():
+def _daily_candles(n: int, seed: int = 0) -> pd.DataFrame:
+    """n daily candles with a noisy random-walk close and varying volume."""
+    rng = np.random.default_rng(seed)
+    close = 100 * np.exp(np.cumsum(rng.normal(0, 0.02, n)))
+    idx = pd.date_range("2020-01-01", periods=n, freq="D", tz="UTC", name="open_time")
+    volume = rng.uniform(50, 150, n)
+    return pd.DataFrame({
+        "open": close, "high": close * 1.01, "low": close * 0.99, "close": close,
+        "volume": volume, "taker_buy_base_volume": volume * rng.uniform(0.4, 0.6, n),
+    }, index=idx)
+
+
+def test_lagged_returns_are_true_lags_of_the_one_day_return():
     close = pd.Series([100.0, 110.0, 121.0, 108.9])
     out = lagged_returns(close, lags=(1, 2))
-    assert out["ret_lag1"].iloc[1] == pytest.approx(np.log(110 / 100))
-    assert out["ret_lag2"].iloc[2] == pytest.approx(np.log(121 / 100))
+    assert out["ret_lag1"].iloc[2] == pytest.approx(np.log(121 / 110))
+    # ret_lag2 at row 2 is the 1-day return one candle earlier, not the 2-day return.
+    assert out["ret_lag2"].iloc[2] == pytest.approx(np.log(110 / 100))
     assert np.isnan(out["ret_lag1"].iloc[0])
+
+
+def test_momentum_is_cumulative_return_over_window():
+    close = pd.Series([100.0, 110.0, 121.0, 108.9])
+    out = momentum(close, windows=(2,))
+    assert out["mom_2d"].iloc[2] == pytest.approx(np.log(121 / 100))
 
 
 def test_rolling_volatility_window_warmup():
@@ -31,24 +51,65 @@ def test_average_true_range_uses_gap_from_prior_close():
     assert atr.iloc[1] == pytest.approx((2.0 + 20.0) / 2)
 
 
+def test_rsi_is_100_in_a_pure_uptrend_and_bounded():
+    assert rsi(pd.Series(np.arange(1.0, 31.0)), window=14).iloc[-1] == pytest.approx(100.0)
+    values = rsi(_daily_candles(200)["close"]).dropna()
+    assert values.between(0, 100).all()
+
+
+def test_trend_features_distance_from_moving_average():
+    close = pd.Series([10.0, 10.0, 13.0])
+    out = trend_features(close, ma_windows=(3,))
+    assert out["dist_ma3"].iloc[2] == pytest.approx(13 / 11 - 1)
+
+
 def test_volume_features_ratio_undefined_when_no_volume():
     df = make_candles([0, 1, 2])
     df["volume"] = [1.0, 0.0, 1.0]
     df["taker_buy_base_volume"] = [0.5, 0.0, 0.5]
-    out = volume_features(df, window=2)
+    out = volume_features(df, z_window=2, ratio_window=2)
     assert np.isnan(out["taker_buy_ratio"].iloc[1])
     assert out["taker_buy_ratio"].iloc[0] == pytest.approx(0.5)
+    assert out["volume_ratio"].iloc[2] == pytest.approx(1.0 / 0.5)
+    assert "log_volume" not in out  # non-stationary level, deliberately excluded
 
 
-def test_build_features_drops_warmup_and_trailing_rows_and_has_no_nan():
-    df = make_candles(list(range(40)))
-    df["volume"] = 1.0 + np.arange(40)  # varying volume so the rolling z-score isn't 0/0
-    df["taker_buy_base_volume"] = df["volume"] / 2
-    out = build_features(df, horizon=1, flat_threshold=0.0)
-    assert len(out) > 0
-    assert len(out) < len(df)
-    assert not out.isna().any().any()
+def test_calendar_features_are_cyclical_and_flag_weekends():
+    idx = pd.date_range("2024-01-01", periods=7, freq="D", tz="UTC")  # Monday .. Sunday
+    out = calendar_features(idx)
+    assert out["is_weekend"].tolist() == [0, 0, 0, 0, 0, 1, 1]
+    # On the unit circle Sunday sits next to Monday, unlike the raw 6 vs 0.
+    monday, sunday = out.iloc[0], out.iloc[6]
+    tuesday = out.iloc[1]
+    dist = lambda a, b: np.hypot(a["dow_sin"] - b["dow_sin"], a["dow_cos"] - b["dow_cos"])
+    assert dist(monday, sunday) == pytest.approx(dist(monday, tuesday))
+
+
+def test_interaction_features_are_products():
+    base = pd.DataFrame({"ret_lag1": [0.02], "volume_z": [3.0], "mom_7d": [0.1], "vol_ratio": [2.0]})
+    out = interaction_features(base)
+    assert out["ret1_x_volz"].iloc[0] == pytest.approx(0.06)
+    assert out["mom7_x_volratio"].iloc[0] == pytest.approx(0.2)
+
+
+def test_build_features_is_model_ready():
+    df = _daily_candles(120)
+    out = build_features(df, horizon=1, flat_threshold=0.01)
+    assert 0 < len(out) < len(df)
+    assert np.isfinite(out.to_numpy()).all()
     assert set(out["label"].unique()) <= {-1.0, 0.0, 1.0}
+    assert "log_volume" not in out
+
+
+def test_build_features_uses_no_future_data():
+    # Changing prices after day t must not change any feature at day t (only the label may).
+    df = _daily_candles(120)
+    shocked = df.copy()
+    shocked.iloc[100:, :4] *= 1.5
+    before = build_features(df).drop(columns="label")
+    after = build_features(shocked).drop(columns="label")
+    common = before.index[before.index < df.index[100]]
+    pd.testing.assert_frame_equal(before.loc[common], after.loc[common])
 
 
 def test_chronological_split_is_ordered_and_purges_boundary():

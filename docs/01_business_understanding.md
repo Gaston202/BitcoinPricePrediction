@@ -2,7 +2,13 @@
 
 ## 1. Business objectives
 
-**Background.** Bitcoin is a highly volatile asset (annualized volatility ≈ 70%) that trades 24/7.
+**Background.** Cryptocurrencies trade 24/7, are highly volatile and are driven by a mix of market
+microstructure, sentiment and news. The project aims to **predict cryptocurrency price movements** and use
+those predictions in a simulated portfolio. We use **Bitcoin (BTCUSDT on Binance) as the case study**: it is
+the largest and most liquid crypto asset, with the longest clean price history. The pipeline is written
+for any Binance spot pair (`config.SYMBOL`), so other coins can be added later without changing the code.
+
+Bitcoin itself is a highly volatile asset (annualized volatility ≈ 70%) that trades 24/7.
 Discretionary trading is emotional and inconsistent. A systematic, data-driven approach can be tested
 objectively on historical data before any real money is risked.
 
@@ -13,9 +19,28 @@ objectively on historical data before any real money is risked.
    portfolio allocation and trading decisions.
 3. A **historical simulation (backtest)** evaluates the strategy's performance.
 
-**Scope of the current iteration:** data collection, data understanding and EDA for the ML model (CRISP-DM phases 1–2).
+**Scope of the midterm:** CRISP-DM from Business Understanding through Feature Engineering (data
+collection, data understanding, preprocessing, EDA with hypothesis testing, feature engineering).
+Modeling, the agent and the backtest are future work (see `docs/08_conclusions.md`).
 
-## 2. Business success criterion
+## 2. Research questions
+
+| # | Question | Answered in |
+|---|---|---|
+| RQ1 | Is the direction of Bitcoin's next price move predictable from its own past returns? | `03_eda.ipynb` items 7, 10 |
+| RQ2 | What are the statistical properties of crypto returns (distribution, stationarity, outliers), and what do they imply for modeling? | `02_data_quality.ipynb`, `03_eda.ipynb` items 3, 4, 6 |
+| RQ3 | Does trading activity (volume, range) carry information about the size of the next move? | `03_eda.ipynb` items 10, 13 (Mann–Whitney test) |
+| RQ4 | Which prediction horizon and "flat" threshold make a predicted move worth its trading fees? | `03_eda.ipynb` item 11 |
+
+**Midterm success criteria** (measurable, for the data-preparation work itself):
+
+1. The cleaned dataset is ≥ 99% complete on its time grid, with 0 duplicate timestamps and 0 invalid prices.
+2. Every research question is answered with a statistical test or a quantified measure, not a visual impression.
+3. The model-ready dataset has 0 NaN/inf values, a chronological split with no overlap, and features that use
+   only data available at time *t* (no leakage).
+4. Every final feature is justified (EDA finding or train-only relevance test), and noisy or redundant features (|ρ| > 0.85) are removed.
+
+## 3. Business success criterion
 
 > The agent's strategy achieves a **higher Sharpe ratio than buy-and-hold BTC** over the out-of-sample
 > test period, **net of 0.1% trading fees per side**.
@@ -26,7 +51,7 @@ criterion: BTC rose about 19× over the dataset, so almost any long strategy "ma
 The comparison must use **exactly the same test window** for both strategies. Buy-and-hold Sharpe
 varies from −1.3 (2022) to +3.4 (2017) depending on the year (see `notebooks/03_eda.ipynb`, item 12).
 
-## 3. Data-mining goal
+## 4. Data-mining goal
 
 Predict the **direction of the next price move** as a 3-class classification:
 
@@ -41,18 +66,29 @@ The FLAT class stops the agent from paying fees on moves too small to be worth t
 
 Horizon and θ are chosen from the EDA evidence. **Recommended: 1-day horizon, θ = 1%** (to be confirmed by the team).
 
-## 4. Data-mining success criterion
+> **Update 2026-11-22 (decisions 12–15).** The modeling iteration tested 1h, 4h and 1D bars with a binary target, a
+> volatility-scaled 3-class target and a triple-barrier target (`docs/09` §4, `docs/05`). The selected direction model
+> is **binary (up/down) on 1h bars**. "Too small to trade" is now expressed as a **confidence band** around
+> P(up) = 0.5 instead of a FLAT class. The model still outputs calibrated probabilities.
+
+## 5. Data-mining success criterion
 
 > On a **chronologically held-out** test set, the classifier beats both the **majority-class** baseline and the
 > **persistence** baseline ("the next move repeats the last realized move") on **macro-F1** and **ROC-AUC**.
 
 Reference values (full dataset, 1D / θ = 1%): majority macro-F1 ≈ 0.18, persistence macro-F1 ≈ 0.36.
 
+> **Revised 2026-11-22 (decision 14).** The classifier must also beat a **reversal** baseline ("the next move is the
+> opposite of the last realized move") on macro-F1 and ROC-AUC, in **every** walk-forward window, with the lift over
+> reversal tested by a block bootstrap. Reason: at 1h and 4h the signs of consecutive returns are negatively
+> correlated (−0.06 and −0.08), so persistence is worse than a coin flip and beating it is too easy. Implemented in
+> `src.modeling.multi_horizon.beats_all_baselines`; evaluated in `notebooks/06_evaluation.ipynb`.
+
 Realistic expectation: crypto direction is close to unpredictable from price alone (EDA item 7).
 A few points above the baselines is a meaningful result. An accuracy far above that almost
 certainly indicates **data leakage** and must be investigated, not celebrated.
 
-## 5. Resources, constraints, risks
+## 6. Resources, constraints, risks
 
 | Item | Detail |
 |---|---|
@@ -64,7 +100,7 @@ certainly indicates **data leakage** and must be investigated, not celebrated.
 | Risk: overfitting the backtest | Tune only on validation data. The test set is touched once. |
 | Risk: geo-blocking | `api.binance.com` returns HTTP 451 in some countries → `BINANCE_USE_DATA_API=1` |
 
-## 6. Decisions log
+## 7. Decisions log
 
 | # | Decision | Choice |
 |---|---|---|
@@ -77,3 +113,10 @@ certainly indicates **data leakage** and must be investigated, not celebrated.
 | 7 | Gap policy | Reindex to an hourly grid, flag gaps, forward-fill gaps ≤ 3h, leave longer gaps NaN |
 | 8 | EDA scope | Core items 1, 3, 4, 6, 7, 10, 11, 12 |
 | 9 | Code layout | Notebooks for the narrative, `src/` for tested logic, venv + `requirements.txt` |
+| 10 | Outliers | Flag daily returns with robust z-score > 5; keep them (real market events) |
+| 11 | Feature selection | Train split only: drop scale-dependent `log_volume`, drop noise (ANOVA + MI vs. shuffled labels), drop one of each pair with \|ρ\| > 0.85 |
+| 12 | Horizons and targets (2026-11-21) | 1h, 4h and 1D bars; binary, volatility-scaled 3-class and triple-barrier targets, *k* set on inner train for a third flat. ML judged on ML metrics only; trading belongs to the agent |
+| 13 | Features (2026-11-21) | 23 short-term features (fast indicators, candle shape, intraday-from-1h). Selection re-run inside every walk-forward window, count chosen on inner-validation log-loss |
+| 14 | Success criterion (2026-11-22) | Beat majority, persistence **and reversal** in every window (see §5) |
+| 15 | Final direction model (2026-11-22) | 1h, binary, LightGBM, Platt-calibrated → `src/modeling/selected_model.json`. No 1D direction model: price alone shows no daily edge |
+| 16 | Price-level model (2026-11-22) | Next-bar high/low on 1h and 4h as price levels (trained as % from close): HAR point forecast + LightGBM 10/50/90% quantile bands with a conformal shift → `src/modeling/selected_price_model.json`. No 5-day forecast (no edge) |

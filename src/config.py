@@ -56,6 +56,10 @@ VOLUME_COLUMNS = [
 # longer gaps stay NaN and are excluded from analysis.
 MAX_FFILL_GAP_HOURS = 3
 
+# Returns whose robust z-score (median/MAD) exceeds this are flagged as outliers.
+# Flagged candles are inspected and kept: they are real market events, not errors.
+OUTLIER_Z = 5.0
+
 # --- Labeling ----------------------------------------------------------------
 # Candidate horizons and "flat" thresholds explored in EDA (item 11).
 CANDIDATE_HORIZONS = ("4h", "1D")

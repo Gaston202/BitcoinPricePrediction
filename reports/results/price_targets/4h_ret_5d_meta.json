@@ -1,0 +1,207 @@
+{
+ "original": {
+  "features": [
+   "rv_168h",
+   "vol_14d",
+   "macd_signal",
+   "bb_width",
+   "roc_10",
+   "mom_14d",
+   "up_move_6b",
+   "down_move_6b",
+   "hl_range_lag1",
+   "macd_hist"
+  ],
+  "n_survivors": 33,
+  "val_mae_by_count": {
+   "10": 0.04133125743305486,
+   "15": 0.04160290849868372,
+   "20": 0.04216845515490781,
+   "30": 0.04218496999468707
+  },
+  "params": {
+   "ridge": {
+    "alpha": 956.6107130571331
+   },
+   "random_forest": {
+    "max_depth": 3,
+    "min_samples_leaf": 10,
+    "max_features": 1.0
+   },
+   "xgboost": {
+    "n_estimators": 100,
+    "max_depth": 1,
+    "learning_rate": 0.010369457014249545,
+    "min_child_weight": 77.0623676492848,
+    "reg_lambda": 0.016786575978500473
+   },
+   "lightgbm": {
+    "n_estimators": 300,
+    "num_leaves": 3,
+    "learning_rate": 0.009781446820086482,
+    "min_child_samples": 24,
+    "reg_lambda": 0.01378437205191402
+   }
+  },
+  "quantile_shift": {
+   "0.1": 0.011410942949663707,
+   "0.5": 0.0017434845456209577,
+   "0.9": -0.02135972919410459
+  }
+ },
+ "2022_bear": {
+  "features": [
+   "rv_168h",
+   "vol_14d",
+   "macd",
+   "bb_width",
+   "mom_14d",
+   "down_move_6b",
+   "rv_ratio_day_week",
+   "rsi_14",
+   "up_move_6b",
+   "roc_10"
+  ],
+  "n_survivors": 31,
+  "val_mae_by_count": {
+   "10": 0.0646681813114599,
+   "15": 0.0652747197173404,
+   "20": 0.06481547681418018,
+   "30": 0.06508668369441731
+  },
+  "params": {
+   "ridge": {
+    "alpha": 956.6107130571331
+   },
+   "random_forest": {
+    "max_depth": 3,
+    "min_samples_leaf": 11,
+    "max_features": 1.0
+   },
+   "xgboost": {
+    "n_estimators": 200,
+    "max_depth": 1,
+    "learning_rate": 0.006860641723864598,
+    "min_child_weight": 90.79945339927075,
+    "reg_lambda": 0.14180981009504912
+   },
+   "lightgbm": {
+    "n_estimators": 100,
+    "num_leaves": 36,
+    "learning_rate": 0.008198699681934494,
+    "min_child_samples": 20,
+    "reg_lambda": 0.05405862851777841
+   }
+  },
+  "quantile_shift": {
+   "0.1": -0.009346626581403974,
+   "0.5": -0.010599859510843855,
+   "0.9": -0.018116917774673492
+  }
+ },
+ "2023_bull": {
+  "features": [
+   "rv_168h",
+   "vol_14d",
+   "macd_signal",
+   "bb_width",
+   "rv_24h",
+   "rsi_14",
+   "mom_14d",
+   "roc_10",
+   "mom7_x_volratio",
+   "up_move_6b",
+   "down_move_6b",
+   "rv_ratio_day_week",
+   "hour_volume_spike",
+   "vol_ratio",
+   "max_hour_share"
+  ],
+  "n_survivors": 33,
+  "val_mae_by_count": {
+   "10": 0.05650716716539447,
+   "15": 0.055996587772442465,
+   "20": 0.056950426430485986,
+   "30": 0.05625895219667583
+  },
+  "params": {
+   "ridge": {
+    "alpha": 956.6107130571331
+   },
+   "random_forest": {
+    "max_depth": 3,
+    "min_samples_leaf": 10,
+    "max_features": 1.0
+   },
+   "xgboost": {
+    "n_estimators": 100,
+    "max_depth": 1,
+    "learning_rate": 0.017578805680648225,
+    "min_child_weight": 81.1947477352593,
+    "reg_lambda": 0.1163388375655921
+   },
+   "lightgbm": {
+    "n_estimators": 100,
+    "num_leaves": 3,
+    "learning_rate": 0.0075012251032991395,
+    "min_child_samples": 75,
+    "reg_lambda": 4.333911201792757
+   }
+  },
+  "quantile_shift": {
+   "0.1": 0.0023427534405366726,
+   "0.5": -0.014720783491920414,
+   "0.9": -0.057552532650419694
+  }
+ },
+ "2025_range": {
+  "features": [
+   "rv_168h",
+   "vol_14d",
+   "macd_signal",
+   "bb_width",
+   "ema3_8_cross",
+   "up_move_6b",
+   "mom_14d",
+   "down_move_6b",
+   "hl_range_lag1",
+   "macd_hist"
+  ],
+  "n_survivors": 32,
+  "val_mae_by_count": {
+   "10": 0.04779270128351579,
+   "15": 0.047922024589105376,
+   "20": 0.04827190104199322,
+   "30": 0.048350017011610895
+  },
+  "params": {
+   "ridge": {
+    "alpha": 956.6107130571331
+   },
+   "random_forest": {
+    "max_depth": 3,
+    "min_samples_leaf": 10,
+    "max_features": 1.0
+   },
+   "xgboost": {
+    "n_estimators": 200,
+    "max_depth": 1,
+    "learning_rate": 0.012723436236050266,
+    "min_child_weight": 13.031154184782329,
+    "reg_lambda": 0.41790573605314746
+   },
+   "lightgbm": {
+    "n_estimators": 100,
+    "num_leaves": 3,
+    "learning_rate": 0.009252217958069249,
+    "min_child_samples": 40,
+    "reg_lambda": 0.2721679199401761
+   }
+  },
+  "quantile_shift": {
+   "0.1": 0.02102764240630885,
+   "0.5": 0.005049427033140194,
+   "0.9": -0.019249947050307678
+  }
+ }
+}

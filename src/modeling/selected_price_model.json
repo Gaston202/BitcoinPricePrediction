@@ -1,0 +1,218 @@
+{
+  "decided": "2026-11-22",
+  "models": {
+    "1h_high_next": {
+      "band_features": [
+        "range_pct",
+        "hl_range_24b",
+        "vol_7d",
+        "bb_width",
+        "mom_3",
+        "down_move_168b",
+        "mom_7d",
+        "roc_10",
+        "ret1_x_volz",
+        "mom_14d",
+        "ret_last_4h",
+        "ret_lag1",
+        "up_move_lag1",
+        "down_move_lag1",
+        "mom_30d",
+        "macd_hist",
+        "ret_lag2",
+        "rv_ratio_day_week",
+        "ret_lag3",
+        "stoch_k",
+        "dow_sin",
+        "is_weekend",
+        "rsi_14",
+        "volume_z",
+        "bb5_pct_b",
+        "lower_wick",
+        "hour_sin",
+        "close_location",
+        "dow_cos",
+        "up_hours_share"
+      ],
+      "band_model": "lightgbm_quantile",
+      "band_params": {
+        "learning_rate": 0.01682173125779918,
+        "min_child_samples": 477,
+        "n_estimators": 500,
+        "num_leaves": 47,
+        "reg_lambda": 0.02182147055147423
+      },
+      "conformal_shift": {
+        "0.1": -0.00012120068598072069,
+        "0.5": -3.913990084792457e-05,
+        "0.9": 0.0002469819826283289
+      },
+      "point_model": "har",
+      "quantiles": [
+        0.1,
+        0.5,
+        0.9
+      ]
+    },
+    "1h_low_next": {
+      "band_features": [
+        "range_pct",
+        "hl_range_24b",
+        "rv_4h",
+        "down_move_168b",
+        "bb_width",
+        "ret_lag1",
+        "mom_3",
+        "dist_ma20",
+        "mom_7d",
+        "down_move_lag1",
+        "ret_last_4h",
+        "up_move_lag1",
+        "dist_ma50",
+        "ret_lag2",
+        "macd_hist",
+        "ret1_x_volz",
+        "ret_lag3",
+        "volume_z",
+        "rv_ratio_day_week",
+        "stoch_d",
+        "obv_slope",
+        "is_weekend",
+        "dow_sin",
+        "up_hours_share",
+        "mfi_14",
+        "vol_ratio",
+        "taker_buy_ratio",
+        "hour_cos",
+        "hour_sin",
+        "close_location"
+      ],
+      "band_model": "lightgbm_quantile",
+      "band_params": {
+        "learning_rate": 0.03174092943781574,
+        "min_child_samples": 417,
+        "n_estimators": 400,
+        "num_leaves": 18,
+        "reg_lambda": 1.1103525577197584
+      },
+      "conformal_shift": {
+        "0.1": -5.537653712135101e-05,
+        "0.5": 5.80652978813029e-05,
+        "0.9": 9.639274502818573e-05
+      },
+      "point_model": "har",
+      "quantiles": [
+        0.1,
+        0.5,
+        0.9
+      ]
+    },
+    "4h_high_next": {
+      "band_features": [
+        "rv_24h",
+        "hl_range_lag1",
+        "down_move_6b",
+        "bb_width",
+        "up_move_6b",
+        "ema3_8_cross",
+        "mom_14d",
+        "dist_ma50",
+        "up_move_lag1",
+        "ret_lag1",
+        "down_move_lag1",
+        "mom_3",
+        "ret_last_1h",
+        "ret_lag2",
+        "macd_hist",
+        "volume_ratio",
+        "rv_ratio_day_week",
+        "ret_lag3",
+        "ret1_x_volz",
+        "hour_cos",
+        "rsi_3",
+        "dow_sin",
+        "vol_ratio",
+        "obv_slope",
+        "is_weekend",
+        "streak",
+        "upper_wick",
+        "close_location",
+        "hour_sin",
+        "max_hour_share"
+      ],
+      "band_model": "lightgbm_quantile",
+      "band_params": {
+        "learning_rate": 0.06158325236404915,
+        "min_child_samples": 272,
+        "n_estimators": 200,
+        "num_leaves": 8,
+        "reg_lambda": 0.27213195381624655
+      },
+      "conformal_shift": {
+        "0.1": -0.0002346609239111248,
+        "0.5": -0.00016711551020055955,
+        "0.9": -0.0005925944647478212
+      },
+      "point_model": "har",
+      "quantiles": [
+        0.1,
+        0.5,
+        0.9
+      ]
+    },
+    "4h_low_next": {
+      "band_features": [
+        "hl_range_6b",
+        "rv_168h",
+        "hl_range_lag1",
+        "down_move_6b",
+        "up_move_6b",
+        "bb_width",
+        "dist_ma20",
+        "dist_ma50",
+        "down_move_lag1",
+        "mom_3",
+        "mom_7d",
+        "macd_hist",
+        "ret_lag1",
+        "up_move_lag1",
+        "ret_last_1h",
+        "ret_lag3",
+        "volume_ratio",
+        "ret_lag2",
+        "rsi_3",
+        "taker_buy_ratio",
+        "mfi_14",
+        "ret1_x_volz",
+        "streak",
+        "close_location",
+        "upper_wick",
+        "rv_ratio_day_week",
+        "dow_sin",
+        "hour_cos",
+        "up_hours_share",
+        "vol_ratio"
+      ],
+      "band_model": "lightgbm_quantile",
+      "band_params": {
+        "learning_rate": 0.08472519974533016,
+        "min_child_samples": 106,
+        "n_estimators": 400,
+        "num_leaves": 4,
+        "reg_lambda": 0.17538232373118048
+      },
+      "conformal_shift": {
+        "0.1": -0.0010639482105933868,
+        "0.5": 0.00014295468536783783,
+        "0.9": 0.00020763073556312353
+      },
+      "point_model": "har",
+      "quantiles": [
+        0.1,
+        0.5,
+        0.9
+      ]
+    }
+  },
+  "output": "price level = close[t] * exp(prediction)"
+}
