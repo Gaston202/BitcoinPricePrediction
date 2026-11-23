@@ -1,8 +1,9 @@
 """Analyst team: each analyst reads one family of data and writes a scored report.
 
 TradingAgents has market, sentiment, news and fundamentals analysts backed by an LLM.
-For a crypto pair there are no fundamentals and no reliable free news feed, so the
-team here covers what Binance data can support, and every rule is explicit:
+Here every analyst is an explicit rule. The only LLM in the system sits *upstream* of the
+news analyst: it turns each day's headlines into a cached score (src/agents/news_sentiment.py),
+and the news analyst reads that score like any other indicator.
 
   trend       - moving-average alignment, long-term trend, MACD
   momentum    - RSI, stochastic, rate of change
@@ -10,6 +11,7 @@ team here covers what Binance data can support, and every rule is explicit:
   volume      - taker-buy pressure, on-balance volume, money flow, volume confirmation
   sentiment   - futures funding rate, crowd long/short ratio, Fear & Greed (contrarian)
   quant       - the project's LightGBM model (P(next candle up)), when it is available
+  news        - LLM (or lexicon) sentiment of yesterday's Bitcoin headlines
 
 Each evidence item is (text, direction +1/-1, strength 0-1, tag). The analyst's score is
 the strength-weighted vote; its confidence is how much and how consistent the evidence is.
@@ -197,6 +199,29 @@ def quant_analyst(row: dict) -> AnalystReport:
     return rep
 
 
+NEWS_MIN_SCORE = 0.15  # |3-day news score| below this is treated as no news signal
+
+
+def news_analyst(row: dict) -> AnalystReport:
+    """Reads the daily news-sentiment score (3-day average, already lagged one day)."""
+    s, c, n = row.get("news_score_3d", row.get("news_score")), row.get("news_confidence"), row.get("news_count")
+    metrics = {"news_score": s, "news_confidence": c, "news_headlines": n, "news_reason": row.get("news_reason")}
+    if not _ok(s):
+        rep = AnalystReport("news", "News analyst (LLM sentiment)", 0.0, 0.0,
+                            "No news score for this period - abstains.", [], metrics)
+        return rep
+    ev = []
+    if abs(s) >= NEWS_MIN_SCORE:
+        why = f": {row['news_reason']}" if row.get("news_reason") else ""
+        ev.append(Evidence(f"News sentiment {s:+.2f} over the last 3 days{why}", 1 if s > 0 else -1,
+                           float(np.clip(abs(s), 0.1, 0.5)), "news_up" if s > 0 else "news_down"))
+    rep = _report("news", "News analyst (LLM sentiment)", ev, metrics, 0.5,
+                  f"News sentiment {s:+.2f} is close to neutral - no vote.")
+    if ev:
+        rep.confidence = float(np.clip(c if _ok(c) else 0.5, 0.1, 0.9))
+    return rep
+
+
 ANALYSTS = {
     "trend": trend_analyst,
     "momentum": momentum_analyst,
@@ -204,4 +229,5 @@ ANALYSTS = {
     "volume": volume_analyst,
     "sentiment": sentiment_analyst,
     "quant": quant_analyst,
+    "news": news_analyst,
 }

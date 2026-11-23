@@ -68,3 +68,42 @@ def attach_sentiment(ind: pd.DataFrame, funding: pd.Series | None = None,
                                 .reindex(out.index.union(funding.index)).ffill().reindex(out.index)
                                 if funding is not None and len(funding) else np.nan)
     return out
+
+
+NEWS_SMOOTHING_DAYS = 3
+
+
+def attach_news(ind: pd.DataFrame, sentiment: pd.DataFrame | None) -> pd.DataFrame:
+    """As-of join of the daily news score onto the candles, without look-ahead.
+
+    The headlines of day D are complete only at the end of D, so the score of D becomes
+    usable at D+1 00:00 UTC. A candle opening at t gets the latest score usable at t.
+    Adds news_score, news_score_3d (3-day average), news_confidence, news_count, news_reason.
+    """
+    out = ind.copy()
+    cols = ["news_score", "news_score_3d", "news_confidence", "news_count", "news_reason"]
+    if sentiment is None or len(sentiment) == 0:
+        for c in cols:
+            out[c] = np.nan
+        return out
+    daily = sentiment.copy()
+    daily["day"] = pd.to_datetime(daily["day"], utc=True)
+    daily = daily.sort_values("day").drop_duplicates("day", keep="last").set_index("day")
+    # A day without any scored headline (confidence 0) carries no information.
+    score = daily["score"].where(daily["confidence"] > 0)
+    table = pd.DataFrame({
+        "news_score": score,
+        "news_score_3d": score.rolling(NEWS_SMOOTHING_DAYS, min_periods=1).mean(),
+        "news_confidence": daily["confidence"],
+        "news_count": daily["n_headlines"].astype(float),
+        "news_reason": daily["reason"],
+    })
+    table.index = table.index + pd.Timedelta("1D")  # usable from the next midnight
+    joined = table.reindex(out.index.union(table.index)).ffill(limit=None).reindex(out.index)
+    # Do not carry a stale score across a long news outage (more than 3 days).
+    age = pd.Series(table.index, index=table.index).reindex(out.index.union(table.index)).ffill().reindex(out.index)
+    stale = (out.index.to_series() - age) > pd.Timedelta("3D")
+    joined.loc[stale.to_numpy()] = np.nan
+    for c in cols:
+        out[c] = joined[c]
+    return out

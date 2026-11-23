@@ -62,7 +62,8 @@ class Wallet:
             side, notional = "SELL", proceeds
         self.fees_paid += fee
         trade = {"timestamp": timestamp, "side": side, "price": price, "notional": notional,
-                 "qty": qty, "fee": fee, "exposure_after": self.exposure(price), "reason": reason}
+                 "qty": qty, "fee": fee, "target": target, "exposure_after": self.exposure(price),
+                 "reason": reason}
         self.trades.append(trade)
         return trade
 

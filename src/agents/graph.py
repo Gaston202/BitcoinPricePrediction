@@ -47,7 +47,8 @@ class TradingAgentsGraph:
         reports = []
         for name in self.cfg["analysts"]:
             rep = ANALYSTS[name](row)
-            rep.weight = self.cfg["analyst_weights"][name] * self.memory.weight_multiplier(name)
+            multiplier = self.memory.weight_multiplier(name) if self.cfg["memory_reweighting"] else 1.0
+            rep.weight = self.cfg["analyst_weights"][name] * multiplier
             reports.append(rep)
 
         plan = run_debate(reports, row, self.cfg["max_debate_rounds"], self.cfg["rating_thresholds"])
@@ -91,7 +92,8 @@ class TradingAgentsGraph:
             timestamp=ts, price=price, interval=self.interval, reports=reports, plan=plan,
             proposal=proposal, risk_views=views, decision=decision,
             market={k: row.get(k) for k in ("atr_pct", "vol_ratio", "rsi14", "ema20", "ema50", "sma200",
-                                            "funding_rate", "fear_greed", "long_short_ratio", "p_up")},
+                                            "funding_rate", "fear_greed", "long_short_ratio", "p_up",
+                                            "news_score_3d")},
         )
         self.last_state = state
         return state
@@ -141,7 +143,8 @@ def run_backtest(ind: pd.DataFrame, cfg: dict | None = None, interval: str = "1h
         peak = max(peak, eq)
         rows.append({"timestamp": ts, "price": s.price, "rating": s.plan.rating, "conviction": s.plan.conviction,
                      "action": s.decision.action, "exposure": graph.wallet.exposure(s.price), "equity": eq,
-                     "drawdown": eq / peak - 1})
+                     "drawdown": eq / peak - 1, "fees": graph.wallet.fees_paid,
+                     "trades": len(graph.wallet.trades)})
     df = pd.DataFrame(rows).set_index("timestamp")
     if len(df):
         df["bh_equity"] = graph.cfg["initial_cash"] * (1 - graph.cfg["fee"]) * df["price"] / df["price"].iloc[0]

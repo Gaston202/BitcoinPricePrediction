@@ -8,10 +8,10 @@ from src import config as project_config
 
 DEFAULT_CONFIG: dict = {
     # --- which analysts take part (TradingAgents: market, social, news, fundamentals)
-    "analysts": ["trend", "momentum", "volatility", "volume", "sentiment", "quant"],
+    "analysts": ["trend", "momentum", "volatility", "volume", "sentiment", "quant", "news"],
     # base weight of each analyst's vote before the memory re-weights it
     "analyst_weights": {"trend": 1.2, "momentum": 1.0, "volatility": 0.8,
-                        "volume": 0.9, "sentiment": 0.7, "quant": 1.0},
+                        "volume": 0.9, "sentiment": 0.7, "quant": 1.0, "news": 0.8},
 
     # --- debates (TradingAgents: max_debate_rounds / max_risk_discuss_rounds)
     "max_debate_rounds": 2,
@@ -40,6 +40,7 @@ DEFAULT_CONFIG: dict = {
     # --- memory / reflection (TradingAgents: decision log + settlement)
     "holding_bars": 6,             # a decision is scored this many bars later
     "memory_window": 200,          # settled decisions used for each analyst's hit rate
+    "memory_reweighting": True,    # False = fixed analyst weights (used by the ablation study)
 
     # --- wallet
     "initial_cash": 1_000.0,

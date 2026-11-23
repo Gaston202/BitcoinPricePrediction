@@ -24,6 +24,8 @@ BEAR_REBUTTALS = [
      "Buy pressure inside a downtrend is usually short covering."),
     ("model", lambda m: True, 0.8,
      "The ML model's edge is thin (AUC ~0.55 in the project's walk-forward) - weigh it lightly."),
+    ("news_up", lambda m: m["overbought"], 0.6,
+     "Good news into an overbought market is usually already priced in."),
     ("*", lambda m: m["turbulent"], 0.8,
      "Volatility is elevated, so every bullish signal is noisier than usual."),
 ]
@@ -40,6 +42,8 @@ BULL_REBUTTALS = [
      "Crowded longs matter less while the trend keeps pushing up."),
     ("model", lambda m: True, 0.8,
      "The ML model's edge is thin (AUC ~0.55 in the project's walk-forward) - weigh it lightly."),
+    ("news_down", lambda m: m["oversold"], 0.6,
+     "Bad news after a sell-off this deep is usually already priced in."),
     ("*", lambda m: m["turbulent"], 0.8,
      "Volatility is elevated, so every bearish signal is noisier than usual."),
 ]
