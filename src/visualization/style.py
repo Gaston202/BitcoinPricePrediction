@@ -39,7 +39,7 @@ def apply_style() -> None:
         "axes.labelcolor": TEXT_SECONDARY,
         "axes.titlecolor": TEXT_PRIMARY,
         "axes.titlesize": 12,
-        "axes.titleweight": "semibold",
+        "axes.titleweight": "bold",
         "axes.titlelocation": "left",
         "axes.grid": True,
         "axes.axisbelow": True,

@@ -35,7 +35,7 @@ imbalanced 3-class target — see `docs/02` finding 12).
 
 | | Total return | Sharpe | Max drawdown |
 |---|---|---|---|
-| random forest strategy | **+9.5%** | **0.44** | **−17.1%** |
+| random forest strategy | **+8.4%** | **0.40** | **−17.1%** |
 | buy-and-hold | −24.9% | −0.33 | −53.0% |
 
 At face value this looks like a clear win. **It is not evidence of predictive skill.** The model predicts

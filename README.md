@@ -19,7 +19,7 @@ python -m venv .venv
 source .venv/Scripts/activate      # Git Bash on Windows  (macOS/Linux: source .venv/bin/activate)
 pip install -r requirements.txt
 
-pytest                              # 14 tests: gap policy, resampling, labels, baselines
+pytest                              # full suite: data, features, modeling, strategy, simulation, agent
 jupyter notebook notebooks/         # run 01 → 02 → 03 in order
 ```
 
@@ -50,6 +50,7 @@ docs/
   05_modeling.md                 candidate models, val/test results, business-read caveat
   06_evaluation.md               formal check against the Phase 1 success criteria, go/no-go verdict
   07_modeling_iteration.md       calibration fix + multi-regime walk-forward, revised verdict
+  08_trading_agent.md            agent policy, dashboard, paper-trading results and findings
 notebooks/
   01_data_collection.ipynb       source, metadata, data dictionary
   02_data_quality.ipynb          gaps, gap policy, resampling (EDA item 1)
@@ -71,6 +72,9 @@ src/
   modeling/train.py              candidate classifiers, feature/label split, evaluation,
                                   calibrated decision-threshold tuning
   visualization/style.py         shared chart style
+  simulation.py                  trade-by-trade USD/BTC wallet simulator
+  agent/                         trading agent: model service, policy, Binance data, live/replay sessions
+dashboard/                       FastAPI admin dashboard (python -m dashboard) + static Chart.js front end
 tests/                           pytest suite
 ```
 
@@ -107,7 +111,7 @@ Details: [`docs/04_data_preparation.md`](docs/04_data_preparation.md).
 Three classifiers (logistic regression, random forest, gradient boosting) trained on `train` and selected
 on `val`. **None beat the persistence baseline on macro-F1** — consistent with the EDA finding that 1D
 direction carries little learnable signal from price/volume features alone. The selected model's test-window
-backtest does outperform buy-and-hold (+9.5% vs. −24.9% return), but mostly by predicting "flat" 89% of the
+backtest does outperform buy-and-hold (+8.4% vs. −24.9% return), but mostly by predicting "flat" 89% of the
 time against an actual 45% flat rate — i.e. sitting out of a bear market, not genuine directional skill.
 
 Details: [`docs/05_modeling.md`](docs/05_modeling.md).
@@ -133,12 +137,12 @@ Details: [`docs/06_evaluation.md`](docs/06_evaluation.md).
 Both issues above were addressed directly — and neither turned out to be fixable this way:
 
 * **Calibrated decision threshold** (`tune_class_weights`/`weighted_predict`, tuned on validation only):
-  closes the macro-F1 gap in the original window only (1 of 4 tested windows) — not a reliable fix.
+  closes the macro-F1 gap in only 2 of 4 tested windows, by ~0.01 — not a reliable fix.
 * **Walk-forward test across regimes** (2022 bear, 2023 bull, 2025 range, plus the original window, all
   retrained fresh per window): the earlier business-criterion "win" **disappears** once the model is
   forced to take more directional positions — the original window now *underperforms* buy-and-hold
-  (Sharpe −0.59 vs −0.33). Across regimes the strategy wins in bear/range markets but **loses badly in the
-  bull-market window** (2023: strategy −27.7% vs. buy-and-hold +154.0%).
+  (Sharpe −0.44 vs −0.33). Across regimes the strategy wins in bear/range markets but **badly lags in the
+  bull-market window** (2023: strategy +28.5% vs. buy-and-hold +154.0%).
 
 **Still not ready for Deployment.** This is a stronger confirmation of the EDA's original warning than
 the first-pass Phase 4/5 result suggested: price/volume features alone do not produce a regime-robust
@@ -146,6 +150,29 @@ directional edge. The project's own design already treats the ML model as one in
 uses news sentiment and market indicators — this result suggests those are not optional extras.
 
 Details: [`docs/07_modeling_iteration.md`](docs/07_modeling_iteration.md).
+
+## Admin Dashboard & AI Trading Agent
+
+```bash
+pip install -r requirements.txt
+python -m dashboard               # opens http://127.0.0.1:8000
+```
+
+* **Overview** - dataset stats, BTC price history with the train/val/test split, 30-day volatility,
+  model vs. baselines, confusion matrix, predicted vs. actual class mix, feature importance, and the
+  agent's backtest vs. buy-and-hold on the unseen test window.
+* **AI Trading** - press **Start AI trading** to give the agent a $1,000 paper wallet:
+  * *Replay* walks through the unseen test window candle by candle (1D or 1h, adjustable speed);
+  * *Live* uses the real Binance BTC price right now (needs internet).
+
+  Real-time charts show the real price vs. the AI's forecast with buy/sell markers, the wallet vs.
+  buy-and-hold, the AI's current probabilities, and a decision log with the reason for every action.
+  Stop-loss, take-profit, minimum confidence and fee-aware buying are adjustable.
+* **Report figures** - every PNG from `reports/figures/`.
+
+The first start trains the agent's models (a few seconds) and caches them in `models/` (gitignored).
+Result: on the test window the agent loses less than buy-and-hold (−20.2% vs −24.9%) but does not make
+money. Details and findings: [`docs/08_trading_agent.md`](docs/08_trading_agent.md).
 
 ## Portfolio Simulation
 

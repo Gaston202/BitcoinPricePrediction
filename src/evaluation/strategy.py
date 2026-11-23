@@ -4,7 +4,8 @@
 Simplifying assumption: the fee cost of a position change is approximated as
 `log(1 - fee) * turnover`, i.e. one full round-trip fee per unit of position
 changed. This is a linear approximation, not an exact trade-by-trade ledger,
-but is good enough to compare strategies at this stage.
+but is good enough to compare strategies at this stage. Position P&L itself is
+exact: log(1 + position * simple_return) for longs and shorts alike.
 """
 
 from __future__ import annotations
@@ -29,8 +30,11 @@ def backtest(pred_label: pd.Series, close: pd.Series, rule: str = "1D",
     next-period return and charges a fee whenever the position changes.
     """
     position = pred_label.map(POSITION)
-    next_log_return = np.log(close.shift(-1) / close).reindex(position.index)
-    gross = position * next_log_return
+    next_simple_return = (close.shift(-1) / close - 1).reindex(position.index)
+    # Exact log growth of a position held for one period. `position * log_return`
+    # is only right for longs: a short earns -r in simple terms, and
+    # log(1 - r) != -log(1 + r) (the old form overstated short gains and losses).
+    gross = np.log1p((position * next_simple_return).clip(lower=-0.9999))
 
     turnover = position.diff().abs()
     turnover.iloc[0] = abs(position.iloc[0])  # opening the initial position also costs a trade

@@ -59,6 +59,21 @@ def volume_features(df: pd.DataFrame, window: int = 14) -> pd.DataFrame:
     })
 
 
+def feature_matrix(df: pd.DataFrame) -> pd.DataFrame:
+    """Backward-looking features only (no label), one row per candle, NaNs kept.
+
+    Used directly by the live trading agent, where the newest candle has no
+    label yet; build_features() adds the label on top for training.
+    """
+    ret_1 = log_returns(df["close"])
+    return pd.concat([
+        lagged_returns(df["close"]),
+        rolling_volatility(ret_1),
+        pd.DataFrame({"atr_14": average_true_range(df) / df["close"]}),
+        volume_features(df),
+    ], axis=1)
+
+
 def build_features(df: pd.DataFrame, horizon: int = LABEL_HORIZON,
                     flat_threshold: float = FLAT_THRESHOLD) -> pd.DataFrame:
     """Assemble the feature matrix + label for one clean OHLCV frame (e.g. 1D candles).
@@ -66,13 +81,7 @@ def build_features(df: pd.DataFrame, horizon: int = LABEL_HORIZON,
     Rows with any NaN (warm-up window, trailing horizon, unfilled data gaps)
     are dropped, so every remaining row is model-ready.
     """
-    ret_1 = log_returns(df["close"])
-    features = pd.concat([
-        lagged_returns(df["close"]),
-        rolling_volatility(ret_1),
-        pd.DataFrame({"atr_14": average_true_range(df) / df["close"]}),
-        volume_features(df),
-    ], axis=1)
+    features = feature_matrix(df)
     fwd = forward_log_return(df["close"], horizon)
     features["label"] = direction_label(fwd, flat_threshold)
     return features.dropna()

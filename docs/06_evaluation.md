@@ -31,7 +31,7 @@ signal.
 
 | | Total return | Sharpe | Max drawdown |
 |---|---|---|---|
-| strategy (random forest positions) | +9.5% | **0.44** | −17.1% |
+| strategy (random forest positions) | +8.4% | **0.40** | −17.1% |
 | buy-and-hold | −24.9% | −0.33 | −53.0% |
 
 **Technically met.** But per the risk `docs/01` Sec. 5 flagged in advance — *"regime change: the test
