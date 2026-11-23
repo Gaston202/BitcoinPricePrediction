@@ -9,9 +9,15 @@ The project follows **CRISP-DM**. Current status (2026-11-22): **Phases 1–5 ar
 iterations. The selected direction model is **1h, binary (up/down), LightGBM, Platt-calibrated**. It beats the
 majority, persistence **and reversal** baselines in 4/4 walk-forward windows, but its edge is small: about 54% hourly
 accuracy, 61% on the most confident 5%. Price alone gives **no daily direction edge**. Trading performance (the
-business criterion) is the agent's job and is not evaluated yet.
+business criterion) is the agent's job: a **rule-based multi-agent team** modelled on
+[TradingAgents](https://github.com/TauricResearch/TradingAgents), without an LLM, trades a $1,000 paper wallet on
+data kept up to date from Binance. On the unseen test window it lost −5.1% (4h) / −3.8% (1D) while buy-and-hold lost
+−22.9% / −24.9% - see [`docs/11_rule_based_agents.md`](docs/11_rule_based_agents.md).
 
 
+> **Just want to run it?** Step-by-step commands and the full list of tools: [`HOW_TO_RUN.md`](HOW_TO_RUN.md).
+> In short: `pip install -r requirements.txt`, then `python -m dashboard`.
+>
 > **New to the project?** Read [`docs/project_guide.pdf`](docs/project_guide.pdf): a 16-page beginner-friendly guide
 > from feature engineering to the final models, with every key figure explained.
 
@@ -77,6 +83,7 @@ docs/
   08_conclusions.md              research questions, modeling results, limitations, roadmap
   09_literature_review.md        41 papers: models, labels, intraday horizons, validation, leakage flags
   10_modeling_handoff.md         2026-11-18 handoff (historical)
+  11_rule_based_agents.md        rule-based multi-agent trader, data updater, backtest results
 notebooks/
   01_data_collection.ipynb       source, metadata, data dictionary
   02_data_quality.ipynb          gaps, gap policy, outliers, resampling (EDA items 1, 5)
@@ -91,6 +98,10 @@ src/
   config.py                      all constants (symbol, dates, gap threshold, fees)
   data/collect.py                Binance REST collector (pagination, retries, 451 fallback)
   data/clean.py                  quality report, gap policy, robust outlier flags
+  data/binance.py                public Binance spot/futures + Fear & Greed data over HTTPS
+  data/update.py                 incremental sync of new candles -> data/live + *_latest.parquet
+  agents/                        rule-based multi-agent trader (analysts, debate, trader, risk team,
+                                  portfolio manager, memory, quant analyst, replay/live sessions)
   features/returns.py            log returns, resampling, 3-class labels
   features/engineering.py        candidate features (lags, momentum, volatility, trend, volume, calendar,
                                   interactions), chronological split
@@ -107,6 +118,7 @@ src/
   modeling/price_targets.py      next-bar high/low price levels with conformal bands, 5-day return (1h/4h)
 scripts/                         runnable experiments (direction, multi-horizon, range)
 reports/results/                 saved experiment outputs read by notebooks 05-07
+dashboard/                       admin dashboard (python -m dashboard): FastAPI + Chart.js
   visualization/style.py         shared chart style
 tests/                           pytest suite
 ```
@@ -184,3 +196,22 @@ A fifth iteration added next-bar high/low price levels with conformal bands (`sr
 Next: the agent, which adds news and macro data and trades selectively, judged on Sharpe net of fees.
 
 Details: [`docs/07_modeling_iteration.md`](docs/07_modeling_iteration.md), [`docs/08_conclusions.md`](docs/08_conclusions.md).
+
+## Trading Agents & Dashboard
+
+```bash
+python -m dashboard                 # admin dashboard at http://127.0.0.1:8000 (syncs Binance data every 5 min)
+python -m src.data.update --watch   # or keep the data up to date from a terminal
+```
+
+* **Agents, not an LLM.** The TradingAgents roles - six analysts (trend, momentum, volatility, volume/order flow,
+  sentiment, and the team's LightGBM as the quant analyst), a bull/bear debate, a research manager with the 5-tier
+  Buy/Overweight/Hold/Underweight/Sell rating, a trader, an aggressive/conservative/neutral risk team, a portfolio
+  manager with hard limits, and a memory that re-weights analysts by their hit rate - each implemented as explicit,
+  testable rules.
+* **Always up to date.** Each sync downloads only the candles that closed since the last one, plus futures funding
+  rates and the Fear & Greed index. The frozen snapshot stays untouched for the notebooks.
+* **Dashboard.** Replay any period (including the newly synced data) or trade live on 1m-4h candles, and inspect every
+  decision's full pipeline. Paper trading only.
+
+Details, design choices and results: [`docs/11_rule_based_agents.md`](docs/11_rule_based_agents.md).
