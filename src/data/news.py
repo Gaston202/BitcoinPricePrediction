@@ -79,7 +79,9 @@ def fetch_hn(day: pd.Timestamp, session: requests.Session) -> list[dict]:
     start, end = _day_bounds(day)
     params = {"query": "bitcoin", "tags": "story", "hitsPerPage": 200,
               "numericFilters": f"created_at_i>={start},created_at_i<{end}"}
-    resp = session.get(HN_URL, params=params, timeout=TIMEOUT)
+    # A fresh connection per request: long-lived keep-alive connections to Algolia were seen to
+    # stall far beyond the read timeout. (connect, read) timeouts keep a stuck call short.
+    resp = requests.get(HN_URL, params=params, timeout=(5, 20))
     if resp.status_code != 200:
         raise NewsError(f"HN search answered {resp.status_code}")
     return [{k: h.get(k) for k in ("title", "url", "created_at", "points", "num_comments")}
@@ -113,10 +115,10 @@ def tidy_hn(hits: list[dict]) -> pd.DataFrame:
     })
 
 
-SOURCES: dict[str, tuple[Callable, Callable, float]] = {
-    # name -> (fetch one day, tidy raw rows, seconds to wait between requests)
-    "gdelt": (fetch_gdelt, tidy_gdelt, 6.0),
-    "hn": (fetch_hn, tidy_hn, 0.5),
+SOURCES: dict[str, tuple[Callable, Callable, float, float]] = {
+    # name -> (fetch one day, tidy raw rows, seconds between requests, first retry wait)
+    "gdelt": (fetch_gdelt, tidy_gdelt, 6.0, 30.0),
+    "hn": (fetch_hn, tidy_hn, 0.5, 5.0),
 }
 
 
@@ -148,8 +150,8 @@ def cache_dir(source: str) -> Path:
     return NEWS_DIR / source
 
 
-def _fetch_with_retries(fetch: Callable, day: pd.Timestamp, session: requests.Session) -> list[dict]:
-    wait = 30.0
+def _fetch_with_retries(fetch: Callable, day: pd.Timestamp, session: requests.Session,
+                        wait: float = 30.0) -> list[dict]:
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             return fetch(day, session)
@@ -163,7 +165,7 @@ def _fetch_with_retries(fetch: Callable, day: pd.Timestamp, session: requests.Se
 def download(start: str, end: str, source: str = "hn", fetch: Callable | None = None,
              gap: float | None = None) -> int:
     """Fill the per-day cache of one source for [start, end]. Returns the days downloaded."""
-    default_fetch, _, default_gap = SOURCES[source]
+    default_fetch, _, default_gap, retry_wait = SOURCES[source]
     fetch, gap = fetch or default_fetch, default_gap if gap is None else gap
     folder = cache_dir(source)
     folder.mkdir(parents=True, exist_ok=True)
@@ -174,7 +176,7 @@ def download(start: str, end: str, source: str = "hn", fetch: Callable | None = 
     for i, day in enumerate(todo, 1):
         while True:
             try:
-                raw = _fetch_with_retries(fetch, day, session)
+                raw = _fetch_with_retries(fetch, day, session, retry_wait)
                 break
             except NewsError as exc:  # long throttling block: wait it out, then resume
                 logger.warning("%s; pausing %.0f minutes", exc, BLOCKED_PAUSE / 60)

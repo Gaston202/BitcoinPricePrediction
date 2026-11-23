@@ -53,6 +53,12 @@ TEAMS: dict[str, list[str]] = {
 TEAM_NEWS_SCORER = {"hybrid_llm": "llm", "hybrid_lexicon": "lexicon"}
 
 
+def available_teams() -> tuple[str, ...]:
+    """Every team whose news scores exist (without LLM scores, hybrid_llm would silently
+    equal core+sentiment, so it is left out instead of reported twice)."""
+    return tuple(t for t in TEAMS if t not in TEAM_NEWS_SCORER or len(load_sentiment(TEAM_NEWS_SCORER[t])))
+
+
 def price_frames() -> dict[str, pd.DataFrame]:
     """Cleaned 1h / 4h / 1D candles of the frozen snapshot (never the live updates)."""
     hourly = fill_gaps(load_snapshot())

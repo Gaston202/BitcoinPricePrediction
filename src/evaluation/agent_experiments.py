@@ -22,7 +22,8 @@ import pandas as pd
 from src import config
 from src.agents.config import INTERVAL_PRESETS
 from src.evaluation.agent_backtest import (
-    DEVELOPMENT, INTERVALS, TEAMS, WINDOWS, MarketData, run_agent, trade_targets, window_table,
+    DEVELOPMENT, INTERVALS, TEAMS, WINDOWS, MarketData, available_teams, run_agent, trade_targets,
+    window_table,
 )
 from src.evaluation.portfolio import (
     STRATEGIES, bar_returns, performance, run_baseline, sharpe_difference_test, simulate_exposure,
@@ -65,7 +66,8 @@ def best_presets(grid: pd.DataFrame) -> dict[str, dict]:
 
 
 # --------------------------------------------------------------------------- 2. team
-def select_team(data: MarketData, intervals=INTERVALS, teams=tuple(TEAMS)) -> tuple[pd.DataFrame, dict]:
+def select_team(data: MarketData, intervals=INTERVALS, teams=None) -> tuple[pd.DataFrame, dict]:
+    teams = teams or available_teams()
     rows = []
     for iv, team in itertools.product(intervals, teams):
         _, sim = run_agent(_segment(data, iv, DEV, team), iv, team)
@@ -90,8 +92,9 @@ def load_selection() -> dict:
 
 # --------------------------------------------------------------------------- 3. evaluation
 def evaluate(data: MarketData, chosen: dict, intervals=INTERVALS, windows=tuple(WINDOWS),
-             teams=tuple(TEAMS)) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+             teams=None) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """(metrics, sharpe tests, equity curves) for every team and baseline on every window."""
+    teams = teams or available_teams()
     metrics, tests, curves = [], [], []
     for iv, win in itertools.product(intervals, windows):
         sample = WINDOWS[win][2]

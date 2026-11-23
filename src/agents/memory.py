@@ -39,6 +39,7 @@ class DecisionMemory:
 
     def __post_init__(self):
         self.settled = deque(self.settled, maxlen=self.window)
+        self._rates: dict[str, dict] | None = None  # cache, invalidated whenever a decision settles
 
     def record(self, step: int, timestamp: str, price: float, rating: str, votes: dict[str, float]) -> None:
         self.pending.append(Pending(step, timestamp, price, rating, dict(votes)))
@@ -60,10 +61,17 @@ class DecisionMemory:
                 with self.log_path.open("a", encoding="utf-8") as fh:
                     fh.write(json.dumps(rec) + "\n")
         if done:
+            self._rates = None
             self._reflect()
         return done
 
     def hit_rates(self) -> dict[str, dict]:
+        """Laplace-smoothed hit rate of each analyst over the last `window` settled decisions."""
+        if self._rates is None:
+            self._rates = self._count_hits()
+        return self._rates
+
+    def _count_hits(self) -> dict[str, dict]:
         stats: dict[str, list[int]] = {}
         for rec in self.settled:
             for a, hit in rec["hits"].items():
