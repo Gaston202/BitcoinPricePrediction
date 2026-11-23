@@ -1,9 +1,15 @@
-# Rule-Based Multi-Agent Trader (CRISP-DM Phase 5–6: the agent and the business criterion)
+# Hybrid Multi-Agent Trader: LLM-read news, rule-based decisions (CRISP-DM Phase 5–6)
 
 **Paper trading only.** A simulated USD/BTC wallet; no order is ever sent to an exchange.
 
 Code: `src/agents/` (engine), `src/data/update.py` + `src/data/binance.py` (always up-to-date data),
-`dashboard/` (admin dashboard). Tests: `tests/test_agents.py`, `tests/test_update.py`, `tests/test_dashboard.py`.
+`src/data/news.py` + `src/agents/news_sentiment.py` (news and its LLM score), `dashboard/` (admin dashboard).
+Tests: `tests/test_agents.py`, `tests/test_news.py`, `tests/test_portfolio.py`, `tests/test_update.py`,
+`tests/test_dashboard.py`. **Evaluation of this agent: [`docs/13_agent_evaluation.md`](13_agent_evaluation.md).**
+
+> **The hybrid principle: the LLM reads, the rules decide.** One open-weights LLM turns each day's Bitcoin
+> headlines into a sentiment score (cached, so backtests never call it). Every buy and sell decision and every
+> risk limit stays an explicit, testable rule. See [`docs/12_news_sentiment.md`](12_news_sentiment.md).
 
 ## 1. Why this design
 
@@ -17,18 +23,19 @@ each decision. We kept its **organisation** and replaced every LLM call with **e
 | Agents | LLM prompts | Deterministic Python rules |
 | Reproducible? | No (sampling, model versions) | Yes - same data, same decision |
 | Explainable? | Free text | Every argument is a rule with a threshold and a weight |
-| Cost / latency | API calls per decision | ~0.6 ms per candle, offline |
-| Data | Stocks: fundamentals, news, social | BTC: Binance candles, futures funding, long/short ratio, Fear & Greed |
+| Cost / latency | API calls per decision | ~0.6 ms per candle, offline; the LLM runs once per day of news, cached |
+| Data | Stocks: fundamentals, news, social | BTC: Binance candles, futures funding, long/short ratio, Fear & Greed, news headlines |
 
 ## 2. The pipeline (one candle)
 
 ```
 Binance candles ──► indicators (src/agents/market_data.py, built on src/features/*)
                       │
-   ┌──────────────────┼────────────────────────────────────────────────┐
-   ▼                  ▼               ▼            ▼           ▼        ▼
- Trend          Momentum        Volatility     Volume/flow  Sentiment  Quant (team's LightGBM)
-   └──────────── reports: score −1…+1, confidence, evidence items ─────┘
+   ┌──────────────────┼──────────────────────────────────────────────────────────────┐
+   ▼                  ▼               ▼            ▼           ▼        ▼              ▼
+ Trend          Momentum        Volatility     Volume/flow  Sentiment  Quant        News ◄── daily headlines
+                                                                   (LightGBM)          scored once by an LLM
+   └──────────── reports: score −1…+1, confidence, evidence items ─────────────────────┘
                       │
           Bull researcher ◄── debate, N rounds ──► Bear researcher
                       │   (rebuttal rules discount the other side's arguments)
@@ -53,6 +60,7 @@ Binance candles ──► indicators (src/agents/market_data.py, built on src/fe
 | Volume / order flow | taker-buy ratio, OBV slope, MFI, volume z-score | > 53% of volume from aggressive buyers → bullish |
 | Sentiment | futures funding rate, long/short ratio, Fear & Greed | funding > 0.03 %/8h (crowded longs) → bearish (contrarian) |
 | Quant | team's LightGBM `P(next 1h up)` | P > 52% → bullish; abstains on other candle sizes |
+| News | yesterday's news score (3-day average), from the LLM or the lexicon | score > +0.15 → bullish, < −0.15 → bearish; confidence = the scorer's |
 
 An analyst with no data (e.g. sentiment before syncing) **abstains** (confidence 0) instead of guessing.
 
@@ -74,6 +82,10 @@ using an EMA of the conviction so one noisy candle cannot flip the position.
 * **Portfolio manager:** adopts the chosen risk profile's view, then applies the hard limits: stop-loss / take-profit
   exits (also checked intrabar in live mode), a 25% drawdown kill switch with a pause, a cooldown after each trade and
   a minimum rebalance size so fees do not eat the wallet.
+  * *Fixed on `hybrid-version`:* after the kill-switch pause the drawdown is measured from the equity at restart
+    (before, the old peak made the first re-entry trigger the kill switch again: 4 kills instead of 1 in the
+    regression test). After a take-profit, adding exposure needs a fresh signal (before, the half just banked was
+    bought straight back on the next candle, paying the fee twice).
 
 ### Memory (`src/agents/memory.py`)
 
@@ -93,28 +105,18 @@ shows the hit rates and the "lessons" the memory derives from them.
 ## 4. Settings were chosen without looking at the test window
 
 Rule thresholds are textbook values. The only tuned settings, the conviction smoothing, cooldown and minimum rebalance
-for each candle size (`INTERVAL_PRESETS` in `src/agents/config.py`), were picked by Sharpe on **2023-01 → 2025-06**.
-The team's unseen test window (2025-07-09 → 2026-09-30) was only used to report the results below.
+for each candle size (`INTERVAL_PRESETS` in `src/agents/config.py`), are picked by Sharpe on the **development period
+2023-01 → 2025-06**: `python scripts/run_agent_evaluation.py tune` reruns the grid search and
+`reports/results/agent/preset_tuning.csv` holds every grid point. A unit test checks that `INTERVAL_PRESETS` equals the
+winners in that file. The analyst team is chosen the same way (`select` step). The test window
+(2025-07-09 → 2026-09-30) and the 2022 bear market are only used to report results.
 
-## 5. Results ($1,000 start, 0.1% fee per trade; trend, momentum, volatility and volume analysts; quant added on 1h)
+## 5. Results
 
-| Candles | Period | Agents | Buy-and-hold | Agent max DD | Trades | Fees |
-|---|---|---|---|---|---|---|
-| 4h | Test window (unseen, bear) | **−5.1%** | −22.9% | −23.5% | 103 | $54 |
-| 1D | Test window (unseen, bear) | **−3.8%** | −24.9% | −18.7% | 19 | $10 |
-| 1h | Test window (unseen, bear) | −28.9% | −23.3% | −36.1% | 420 | $222 |
-| 4h | Tuning period 2023-01 → 2025-06 (bull) | +165.5% | +547.4% | - | 251 | $243 |
+The full evaluation (every window, seven baselines, bootstrap tests, ablation, sensitivity) is in
+[`docs/13_agent_evaluation.md`](13_agent_evaluation.md) and `notebooks/08_agent_evaluation.ipynb`.
 
-What this means:
-
-* **The edge is defensive.** In the falling test market the team cut exposure early and lost 4-5× less than holding,
-  with a much smaller drawdown. In the strong bull market it made money but far less than simply holding.
-* **Fast candles lose to fees.** On 1h candles the signals flip too often; every setting we tried lost money on the
-  tuning period, and it lost on the test window too. 4h is the recommended default.
-* **The team's ML model helps a little as one voice among six.** As the quant analyst on 1h candles, its directional
-  calls were right 61% of the time over the 6-candle settlement horizon, but that was not enough to overcome the fees.
-* Compared with the earlier single-model agent (−20.2% on the same window), the rule-based team cuts the loss by
-  three quarters on 4h and 1D candles.
-
-Nothing here is evidence of a money-making strategy. It is evidence that a transparent, rule-based risk process
-protects capital better than buying and holding in a downturn, at the cost of upside in rallies.
+For the record, the table first reported on the `marouen` branch (before the two bug fixes, compared with
+buy-and-hold only) was: 4h test window −5.1% vs −22.9% buy-and-hold, 1D −3.8% vs −24.9%, 1h −28.9% vs −23.3%.
+The audit of that branch found that a one-line 200-candle moving-average filter beat it in every period, which is
+why the agent is now always compared with simple strategies, not only with buy-and-hold.

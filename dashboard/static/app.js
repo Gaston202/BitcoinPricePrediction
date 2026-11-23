@@ -23,7 +23,7 @@ const ago = (iso) => {
   if (s < 129600) return Math.round(s / 3600) + " h ago";
   return Math.round(s / 86400) + " days ago";
 };
-const ANALYSTS = { trend: "Trend", momentum: "Momentum", volatility: "Volatility", volume: "Volume / flow", sentiment: "Sentiment", quant: "Quant (ML)" };
+const ANALYSTS = { trend: "Trend", momentum: "Momentum", volatility: "Volatility", volume: "Volume / flow", sentiment: "Sentiment", quant: "Quant (ML)", news: "News (LLM)" };
 const kpi = (label, value, delta = "", cls = "") =>
   `<div class="kpi"><div class="label">${label}</div><div class="value ${cls}">${value}</div><div class="delta">${delta}</div></div>`;
 

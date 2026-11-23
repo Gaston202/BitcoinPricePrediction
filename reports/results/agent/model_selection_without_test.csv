@@ -1,0 +1,19 @@
+horizon,target,scope,best_model,lightgbm_rank,n_models,best_mean_sign_auc,lightgbm_mean_sign_auc
+1D,binary,all 4 windows,gradient_boosting,4,9,0.5323,0.5282
+1D,binary,without the test window,gradient_boosting,4,9,0.5376,0.5246
+1D,triple_barrier,all 4 windows,soft_voting,5,9,0.5179,0.5030
+1D,triple_barrier,without the test window,logistic_regression,3,9,0.5148,0.4986
+1D,vol3,all 4 windows,gradient_boosting,5,9,0.5243,0.5084
+1D,vol3,without the test window,svm,6,9,0.5241,0.5002
+1h,binary,all 4 windows,stacking,3,9,0.5584,0.5584
+1h,binary,without the test window,stacking,2,9,0.5638,0.5638
+1h,triple_barrier,all 4 windows,lightgbm,1,9,0.5459,0.5434
+1h,triple_barrier,without the test window,lightgbm,1,9,0.5496,0.5456
+1h,vol3,all 4 windows,soft_voting,4,9,0.5578,0.5576
+1h,vol3,without the test window,stacking,4,9,0.5631,0.5615
+4h,binary,all 4 windows,soft_voting,2,9,0.5558,0.5531
+4h,binary,without the test window,lightgbm,1,9,0.5619,0.5601
+4h,triple_barrier,all 4 windows,soft_voting,4,9,0.5110,0.5042
+4h,triple_barrier,without the test window,soft_voting,4,9,0.5109,0.5068
+4h,vol3,all 4 windows,soft_voting,5,9,0.5530,0.5530
+4h,vol3,without the test window,soft_voting,4,9,0.5605,0.5605

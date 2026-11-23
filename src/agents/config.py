@@ -48,16 +48,18 @@ DEFAULT_CONFIG: dict = {
 }
 
 
-# Hysteresis per candle size, picked by Sharpe on 2023-01 -> 2025-06 (NOT the 2025-07+ test window).
-# Fast candles flip constantly, so they need a smoother conviction and a longer cooldown to
-# keep fees under control; see docs/11_rule_based_agents.md.
+# Hysteresis per candle size: the highest-Sharpe point of a 48-point grid on the development
+# period 2023-01 -> 2025-06 (never the 2025-07+ test window). Reproduce with
+# `python scripts/run_agent_evaluation.py tune`; reports/results/agent/preset_tuning.csv has every
+# grid point and tests/test_agents.py checks that these values are its winners. The minute candles
+# (live mode only, no history to tune on) reuse the 1h setting.
 INTERVAL_PRESETS: dict[str, dict] = {
-    "1m": {"conviction_smoothing": 12, "min_hold_bars": 6, "min_rebalance": 0.35},
-    "5m": {"conviction_smoothing": 12, "min_hold_bars": 6, "min_rebalance": 0.35},
-    "15m": {"conviction_smoothing": 12, "min_hold_bars": 6, "min_rebalance": 0.35},
-    "1h": {"conviction_smoothing": 12, "min_hold_bars": 6, "min_rebalance": 0.35},
-    "4h": {"conviction_smoothing": 12, "min_hold_bars": 2, "min_rebalance": 0.35},
-    "1D": {"conviction_smoothing": 6, "min_hold_bars": 6, "min_rebalance": 0.15},
+    "1m": {"conviction_smoothing": 12, "min_hold_bars": 2, "min_rebalance": 0.35},
+    "5m": {"conviction_smoothing": 12, "min_hold_bars": 2, "min_rebalance": 0.35},
+    "15m": {"conviction_smoothing": 12, "min_hold_bars": 2, "min_rebalance": 0.35},
+    "1h": {"conviction_smoothing": 12, "min_hold_bars": 2, "min_rebalance": 0.35},
+    "4h": {"conviction_smoothing": 24, "min_hold_bars": 12, "min_rebalance": 0.25},
+    "1D": {"conviction_smoothing": 3, "min_hold_bars": 6, "min_rebalance": 0.25},
 }
 
 

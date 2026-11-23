@@ -135,7 +135,7 @@ class StartRequest(BaseModel):
     speed: float = Field(20.0, gt=0, le=500)
     initial_cash: float = Field(1000.0, gt=0, le=1e9)
     risk_profile: Literal["aggressive", "neutral", "conservative"] = "neutral"
-    analysts: list[Literal["trend", "momentum", "volatility", "volume", "sentiment", "quant"]] = Field(
+    analysts: list[Literal["trend", "momentum", "volatility", "volume", "sentiment", "quant", "news"]] = Field(
         default_factory=lambda: list(DEFAULT_CONFIG["analysts"]), min_length=1)
     max_debate_rounds: int = Field(2, ge=1, le=4)
     max_risk_rounds: int = Field(1, ge=1, le=3)

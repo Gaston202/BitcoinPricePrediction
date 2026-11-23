@@ -22,7 +22,8 @@ from src import config as project_config
 from src.agents import quant
 from src.agents.config import config_for
 from src.agents.graph import TradingAgentsGraph
-from src.agents.market_data import WARMUP_BARS, attach_sentiment, compute_indicators
+from src.agents.market_data import WARMUP_BARS, attach_news, attach_sentiment, compute_indicators
+from src.agents.news_sentiment import best_available
 from src.data import binance as binance_mod
 from src.data import update
 
@@ -153,6 +154,17 @@ class TradingSession:
         g = self.graph
         return g.cfg["initial_cash"] * (1 - g.cfg["fee"]) * price / (g.first_price or price)
 
+    def _with_news(self, ind: pd.DataFrame) -> pd.DataFrame:
+        """Attach the cached daily news scores; the news analyst abstains where there are none."""
+        if "news" not in self.graph.cfg["analysts"]:
+            return ind
+        name, table = best_available()
+        note = (f"News analyst uses the {name} news scores (up to {pd.to_datetime(table['day']).max():%Y-%m-%d})."
+                if len(table) else "News analyst abstains: no news scores yet (python -m src.agents.news_sentiment).")
+        if note not in self.notes:
+            self.notes.append(note)
+        return attach_news(ind, table)
+
     # ------------------------------------------------------------------ replay
     def _run_replay(self) -> None:
         bars = update.load_latest(self.interval).dropna(subset=["close"])
@@ -163,6 +175,7 @@ class TradingSession:
                               "Press 'Sync now' with internet access to download them.")
         sent = sentiment_series()
         ind = attach_sentiment(compute_indicators(bars), sent["funding"], sent["fear_greed"])
+        ind = self._with_news(ind)
         if "quant" in self.graph.cfg["analysts"]:
             if self.interval == "1h":
                 self.notes.append(add_quant(ind, start))
@@ -210,6 +223,7 @@ class TradingSession:
                             sent = sentiment_series(live_ratio=True, market=self.market)
                         ind = attach_sentiment(compute_indicators(candles), sent["funding"],
                                                sent["fear_greed"], sent["long_short"])
+                        ind = self._with_news(ind)
                         if quant_on:
                             stored = update.load_latest("1h")
                             hourly = pd.concat([stored[candles.columns], candles])

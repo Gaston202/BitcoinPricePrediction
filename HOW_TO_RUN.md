@@ -20,14 +20,15 @@ All commands are run from the project root folder `BitcoinPricePrediction`.
 ```powershell
 git clone https://github.com/Gaston202/BitcoinPricePrediction.git
 cd BitcoinPricePrediction
-git checkout marouen
+git checkout hybrid-version
 ```
 
-Already have the folder? Open it and update it:
+Already have the folder? Open it in a terminal and update it:
 
 ```powershell
-cd "C:\Users\Mega Pc\OneDrive - South Mediterranean University\Desktop\DataScience_Lab\BitcoinPricePrediction"
-git pull origin marouen
+git fetch origin
+git checkout hybrid-version
+git pull
 ```
 
 ## 3. Create and activate a virtual environment
@@ -170,7 +171,7 @@ $env:BINANCE_USE_DATA_API = "1"; python -m src.data.collect   # if Binance answe
 | `Address already in use` | Another program uses port 8000: `python -m dashboard --port 8080` |
 | A notebook can't find `src` | Start Jupyter from the project root, not inside `notebooks/` |
 
-More detail: [`README_FULL_SETUP.md`](README_FULL_SETUP.md) · agent design and results: [`docs/11_rule_based_agents.md`](docs/11_rule_based_agents.md).
+Agent design: [`docs/11_rule_based_agents.md`](docs/11_rule_based_agents.md) · news sentiment: [`docs/12_news_sentiment.md`](docs/12_news_sentiment.md) · agent evaluation: [`docs/13_agent_evaluation.md`](docs/13_agent_evaluation.md).
 
 ---
 

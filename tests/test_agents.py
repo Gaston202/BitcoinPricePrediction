@@ -215,3 +215,13 @@ def test_take_profit_is_not_bought_back_on_the_next_candle():
     first_tp = next(i for i, t in enumerate(g.wallet.trades) if "TAKE-PROFIT" in t["reason"])
     # The rating stays Buy the whole time, so nothing after the take-profit may be a BUY.
     assert "BUY" not in sides[first_tp + 1:]
+
+
+def test_interval_presets_match_the_committed_tuning_results():
+    """INTERVAL_PRESETS must be the development-period winners in reports/results/agent/."""
+    from src.evaluation.agent_experiments import RESULTS_DIR, best_presets
+    path = RESULTS_DIR / "preset_tuning.csv"
+    if not path.exists():
+        pytest.skip("run scripts/run_agent_evaluation.py tune first")
+    for interval, params in best_presets(pd.read_csv(path)).items():
+        assert {k: INTERVAL_PRESETS[interval][k] for k in params} == params, interval

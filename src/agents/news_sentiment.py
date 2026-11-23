@@ -233,6 +233,15 @@ def load_sentiment(scorer_name: str) -> pd.DataFrame:
     return pd.read_parquet(path)
 
 
+def best_available() -> tuple[str, pd.DataFrame]:
+    """The LLM scores when they exist, else the lexicon scores (name, table)."""
+    for name in ("llm", "lexicon"):
+        table = load_sentiment(name)
+        if len(table):
+            return name, table
+    return "none", load_sentiment("lexicon")
+
+
 def score_all(headlines: pd.DataFrame, scorer, batch_days: int = DAYS_PER_REQUEST,
               path: Path | None = None) -> pd.DataFrame:
     """Score every day not yet cached, saving after each batch so the run can be resumed."""

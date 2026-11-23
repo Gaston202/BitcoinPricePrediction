@@ -180,3 +180,49 @@ def test_news_analyst_votes_abstains_and_ignores_neutral_news():
     assert bull.score > 0 and bull.confidence == pytest.approx(0.7) and "ETF approved" in bull.evidence[0].text
     assert news_analyst({}).confidence == 0
     assert news_analyst({"news_score_3d": 0.05, "news_confidence": 0.9}).evidence == []
+
+
+# --------------------------------------------------------------------------- statistics
+from src.evaluation import news_analysis as na  # noqa: E402
+
+
+def _synthetic(informative: bool, n=400, seed=0):
+    rng = np.random.default_rng(seed)
+    days = pd.date_range("2023-01-01", periods=n, freq="1D", tz="UTC")
+    score = rng.uniform(-1, 1, n)
+    ret = rng.normal(0, 0.02, n)
+    if informative:
+        ret[1:] += 0.02 * score[:-1]   # today's news moves tomorrow's price
+    close = pd.Series(100 * np.exp(np.cumsum(ret)), index=days)
+    sent = pd.DataFrame({"day": days, "score": score, "confidence": 0.8, "n_headlines": 10})
+    return sent, close
+
+
+def test_align_compares_a_days_news_with_the_next_days_return():
+    sent, close = _synthetic(False, n=10)
+    a = na.align(sent, close)
+    r = np.log(close).diff()
+    assert a["next_ret"].iloc[0] == pytest.approx(r.iloc[1])
+    assert a.index[-1] < close.index[-1]           # the last day has no next return
+
+
+def test_informative_news_is_detected_and_noise_is_not():
+    sent, close = _synthetic(True)
+    a = na.align(sent, close)
+    corr = na.correlations(a).set_index("compared with")
+    assert corr.loc["next_ret", "spearman_rho"] > 0.3 and corr.loc["next_ret", "p_value"] < 0.001
+    g = na.granger(a).query("lag_days == 1").set_index("direction")
+    assert g.loc["score -> same_ret", "p_value"] < 0.001
+    ev = na.event_study(a).set_index("group")
+    assert ev.loc["most bullish news", "mean_5d_return"] > ev.loc["most bearish news", "mean_5d_return"]
+
+    sent0, close0 = _synthetic(False, seed=1)
+    corr0 = na.correlations(na.align(sent0, close0)).set_index("compared with")
+    assert corr0.loc["next_ret", "p_value"] > 0.01
+
+
+def test_scorer_agreement():
+    sent, _ = _synthetic(False, n=50)
+    other = sent.assign(score=sent["score"] * 0.5)
+    res = na.scorer_agreement(sent, other)
+    assert res["spearman_rho"] == pytest.approx(1.0) and res["sign_agreement"] == 1.0
