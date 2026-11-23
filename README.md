@@ -12,6 +12,8 @@ modeling iteration. The model has **not** cleared the success criteria across mu
 
 ## Quick start
 
+> **Step-by-step commands and the full list of tools used: [`HOW_TO_RUN.md`](HOW_TO_RUN.md).**
+
 Requires Python ≥ 3.11.
 
 ```bash
