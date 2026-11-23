@@ -1,7 +1,8 @@
 # How to Run the Project
 
-Bitcoin price prediction plus a **rule-based multi-agent trader** (modelled on TradingAgents, no LLM) that manages a
-$1,000 paper wallet on always up-to-date Binance data.
+Bitcoin price prediction plus a **hybrid multi-agent trader** (modelled on TradingAgents: an open-weights LLM reads
+the daily news, explicit rules make every trade) that manages a $1,000 paper wallet on always up-to-date Binance data.
+The LLM is optional: without an API key the news analyst uses a word-list scorer, and everything else works offline.
 All commands are run from the project root folder `BitcoinPricePrediction`.
 
 > Commands are shown for **Windows PowerShell**. Git Bash / macOS / Linux alternatives are noted under each step.
@@ -129,9 +130,11 @@ print(graph.summary()["pnl_pct"], graph.last_state.plan.rationale)
 ```powershell
 python -m pytest            # whole suite
 python -m pytest -q tests/test_agents.py tests/test_update.py tests/test_dashboard.py   # agents, data sync, dashboard
+python -m pytest -q tests/test_news.py tests/test_portfolio.py                          # news, LLM scorer, evaluation
 ```
 
-The tests never call Binance (the network is faked), so they pass offline.
+The tests never call Binance, Hacker News or OpenRouter (the network is faked), so they pass offline. GitHub runs
+them on every push (`.github/workflows/tests.yml`). On macOS/Linux, `make test` does the same.
 
 ## 10. Run all the notebooks (full analysis)
 
@@ -144,12 +147,43 @@ The tests never call Binance (the network is faked), so they pass offline.
 | 05 | `05_modeling.ipynb` | Walk-forward protocol, targets, 9 models, calibration |
 | 06 | `06_evaluation.ipynb` | Baselines, success criteria, calibration, stability |
 | 07 | `07_modeling_iteration.ipynb` | Four iterations and the final model |
+| 08 | `08_agent_evaluation.ipynb` | The agent vs. seven baselines: business criterion, bootstrap, ablation, robustness |
+| 09 | `09_news_sentiment.ipynb` | News coverage, LLM vs lexicon scores, predictive tests, look-ahead check |
+
+Notebook 08 reads `reports/results/agent/`, produced by step 10b.
 
 ```powershell
 Get-ChildItem notebooks\0*.ipynb | ForEach-Object { jupyter nbconvert --to notebook --execute --inplace $_.FullName }
 ```
 
 Git Bash: `for nb in notebooks/0*.ipynb; do jupyter nbconvert --to notebook --execute --inplace "$nb"; done`
+
+## 10b. News sentiment and the agent evaluation
+
+The frozen inputs are committed (`data/external/`), so this step only reruns the experiments:
+
+```powershell
+python scripts/run_agent_evaluation.py all    # team selection, evaluation, ablation, sensitivity (~6 min)
+python scripts/run_agent_evaluation.py tune   # optional: the 48-point preset grid (~1.5 h)
+```
+
+macOS/Linux: `make agent` / `make tune`. Results: `reports/results/agent/*.csv`.
+
+**Scoring the news with the LLM (optional).** The LLM is `google/gemma-4-31b-it:free` on OpenRouter (free, open
+weights).
+
+1. Create a free account at openrouter.ai and an API key.
+2. Copy `.env.example` to `.env` and paste the key: `OPENROUTER_API_KEY=sk-or-...` (`.env` is never committed).
+3. Score every day once (the result is cached, so backtests never call the API):
+
+```powershell
+python -m src.agents.news_sentiment --scorer llm            # resumable: rerun after a daily-limit stop
+python -m src.agents.news_sentiment --scorer llm --model <other-openrouter-model>   # optional
+python scripts/run_agent_evaluation.py all                 # now also evaluates the hybrid_llm team
+```
+
+Re-downloading the headlines (optional, ~1 h): `python -m src.data.news --source hn` then
+`python -m src.data.news --source hn --snapshot`, and `python -m src.agents.news_sentiment --scorer lexicon`.
 
 ## 11. Optional: rebuild the frozen snapshot
 
@@ -170,6 +204,9 @@ $env:BINANCE_USE_DATA_API = "1"; python -m src.data.collect   # if Binance answe
 | Sentiment analyst always abstains | Its data comes from the sync - press **Sync now** with internet access |
 | `Address already in use` | Another program uses port 8000: `python -m dashboard --port 8080` |
 | A notebook can't find `src` | Start Jupyter from the project root, not inside `notebooks/` |
+| macOS: `Library not loaded: libomp.dylib` (LightGBM) | `brew install libomp`, or `export DYLD_LIBRARY_PATH=$PWD/.venv/lib/python3.11/site-packages/sklearn/.dylibs` |
+| `OPENROUTER_API_KEY is not set` | Only needed for `--scorer llm`; see step 10b |
+| LLM scoring stops with "daily limit" | The free tier's daily quota: rerun the next day, it resumes where it stopped |
 
 Agent design: [`docs/11_rule_based_agents.md`](docs/11_rule_based_agents.md) · news sentiment: [`docs/12_news_sentiment.md`](docs/12_news_sentiment.md) · agent evaluation: [`docs/13_agent_evaluation.md`](docs/13_agent_evaluation.md).
 
@@ -192,6 +229,9 @@ Agent design: [`docs/11_rule_based_agents.md`](docs/11_rule_based_agents.md) · 
 | **data-api.binance.vision** | Binance market-data mirror, fallback when the main API is blocked (HTTP 451) |
 | **Binance USDT-M Futures API** (`/fapi/v1/fundingRate`, `globalLongShortAccountRatio`) | Funding-rate history and crowd long/short ratio for the sentiment analyst |
 | **Alternative.me Fear & Greed API** | Daily crypto Fear & Greed index (sentiment analyst) |
+| **Hacker News search API** (Algolia) | Daily Bitcoin headlines 2022 → now for the news analyst (`src/data/news.py`) |
+| **GDELT DOC 2.0 API** | Alternative headline source (broader, but heavily rate-limited) |
+| **OpenRouter** (`google/gemma-4-31b-it:free`) | Open-weights LLM that scores each day's headlines (optional, cached) |
 | **python-binance** | Client used to build the original frozen snapshot (`src/data/collect.py`) |
 | **requests** | HTTP calls for the incremental updater and live trading (`src/data/binance.py`) |
 
@@ -211,6 +251,8 @@ Agent design: [`docs/11_rule_based_agents.md`](docs/11_rule_based_agents.md) · 
 | **scikit-learn** | Baseline models, feature selection, PCA, Platt calibration, metrics |
 | **LightGBM**, **XGBoost** | Gradient-boosted models; the selected 1h LightGBM is the quant analyst |
 | **Optuna** | Hyperparameter search in the walk-forward experiments |
+| **Block bootstrap** (own code, `src/evaluation/portfolio.py`) | Is the agent's Sharpe really above a baseline's? |
+| **Granger causality, Spearman, event study** (statsmodels, SciPy) | Does news predict the next day's return? |
 | **joblib** | Caching trained models (`models/`) |
 
 ## Agents
@@ -218,6 +260,7 @@ Agent design: [`docs/11_rule_based_agents.md`](docs/11_rule_based_agents.md) · 
 | Tool | Used for |
 |---|---|
 | **TradingAgents** (Tauric Research, reference design) | Agent roles, debate rounds, 5-tier rating, risk team, memory - re-implemented as rules |
+| **LLM for text only** | Headlines → daily sentiment score; a word-list (lexicon) scorer is the offline fallback and the control |
 | **Technical analysis rules** (EMA, SMA, MACD, RSI, stochastic, Bollinger, ATR, OBV, MFI) | The analysts' logic (`src/agents/analysts.py`) |
 | **Python dataclasses / threading** | Agent messages (`src/agents/state.py`), background replay / live sessions and data sync |
 

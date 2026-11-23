@@ -1,0 +1,26 @@
+{
+  "chosen_on": "2023-01-01 -> 2025-06-30 (development period)",
+  "rule": "highest Sharpe on the development period",
+  "team": {
+    "1D": "core",
+    "1h": "core+sentiment",
+    "4h": "hybrid_lexicon"
+  },
+  "presets": {
+    "1D": {
+      "conviction_smoothing": 3,
+      "min_hold_bars": 6,
+      "min_rebalance": 0.25
+    },
+    "1h": {
+      "conviction_smoothing": 12,
+      "min_hold_bars": 2,
+      "min_rebalance": 0.35
+    },
+    "4h": {
+      "conviction_smoothing": 24,
+      "min_hold_bars": 12,
+      "min_rebalance": 0.25
+    }
+  }
+}
