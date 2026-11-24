@@ -42,7 +42,10 @@ that replaying the agent's targets through `simulate_exposure` reproduces its eq
   `INTERVAL_PRESETS`, and a unit test keeps them equal to `preset_tuning.csv`.
 * **Team** (development Sharpe): `core` (trend, momentum, volatility, volume), `core+sentiment` (+ funding, long/short,
   Fear & Greed), `hybrid_lexicon` (+ news scored by the lexicon), `hybrid_llm` (+ news scored by the LLM, once its
-  scores exist). Selected: **1h `core+sentiment`, 4h `hybrid_lexicon`, 1D `core`**.
+  scores exist). Selected: **1h `core+sentiment`, 4h `hybrid_lexicon`, 1D `core`**. `hybrid_llm` (news read by
+  Nemotron 3 Ultra) ranked 2nd on 1h and last on 4h and 1D, so it was not selected. For the record, on the test
+  window it scored 4h +0.30 / 1D +0.24 / 1h −1.27: better than the selected 4h team, but no better than `core`
+  (+0.33 / +0.18 / −1.52). Choosing it after seeing that would be selecting on the test window.
 * **The quant analyst's model** was itself chosen in phase 4 with the test window visible. Re-running that choice
   without the test window (`scripts/check_model_selection_without_test.py`) still picks the 1h binary target, with
   LightGBM 2nd of 9 models (3rd with all windows): the choice does not depend on the agent's test window.
