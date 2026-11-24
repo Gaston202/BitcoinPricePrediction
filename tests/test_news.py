@@ -136,6 +136,21 @@ def test_broken_json_is_rescored_in_halves_and_a_hopeless_day_left_unrated():
     assert len(session.payloads) == 3
 
 
+def test_a_dropped_connection_is_retried(monkeypatch):
+    import requests
+    monkeypatch.setattr(ns.time, "sleep", lambda s: None)
+
+    class Flaky(FakeSession):
+        def post(self, *a, **k):
+            if not self.payloads:
+                self.payloads.append(None)
+                raise requests.exceptions.ChunkedEncodingError("Response ended prematurely")
+            return super().post(*a, **k)
+
+    scorer = ns.LLMScorer(api_key="test", session=Flaky([_llm_answer(1)]), pause=0)
+    assert scorer.score_days({DAY: ["Bitcoin rallies"]})[0]["score"] == 0.5
+
+
 def test_llm_scorer_needs_a_key(monkeypatch, tmp_path):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.setattr(ns, "load_api_key", lambda: None)

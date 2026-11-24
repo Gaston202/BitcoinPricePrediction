@@ -189,11 +189,17 @@ class LLMScorer:
     def _post(self, payload: dict) -> dict:
         wait = 20.0
         for attempt in range(1, MAX_RETRIES + 1):
-            resp = self.session.post(OPENROUTER_URL, json=payload, timeout=TIMEOUT,
-                                     headers={"Authorization": f"Bearer {self.api_key}",
-                                              "X-Title": "BTC news sentiment (student project)"})
-            if resp.status_code == 200:
-                return resp.json()
+            try:
+                resp = self.session.post(OPENROUTER_URL, json=payload, timeout=TIMEOUT,
+                                         headers={"Authorization": f"Bearer {self.api_key}",
+                                                  "X-Title": "BTC news sentiment (student project)"})
+                if resp.status_code == 200:
+                    return resp.json()
+            except (requests.RequestException, ValueError) as exc:  # dropped connection, cut-off body
+                logger.info("Network error (%s), retry %d in %.0fs", type(exc).__name__, attempt, wait)
+                time.sleep(wait)
+                wait *= 2
+                continue
             body = resp.text[:300]
             if resp.status_code == 429 and "per-day" in body.lower():
                 raise QuotaExhausted(body)
