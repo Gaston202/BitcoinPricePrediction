@@ -41,10 +41,10 @@ results (2026-11-23; `notebooks/08`–`09`, `docs/11`–`13`).
 
 | Finding | Evidence |
 |---|---|
-| **Business criterion met on 4h and 1D candles, not on 1h — but not convincingly.** Test-window Sharpe: 4h −0.11 and 1D +0.18 vs −0.32 / −0.34 for buy-and-hold; 1h −1.17 vs −0.31 | `docs/13` §3–4 |
-| **No difference is statistically significant** (paired block bootstrap, p = 0.26–0.41 on the test window) | `docs/13` §3 |
+| **Business criterion met on 4h and 1D candles, not on 1h — but not convincingly.** Test-window Sharpe: 4h −0.04 and 1D +0.18 vs −0.32 / −0.34 for buy-and-hold; 1h −1.17 vs −0.31 | `docs/13` §3–4 |
+| **No difference is statistically significant** (paired block bootstrap, p = 0.26–0.39 on the test window) | `docs/13` §3 |
 | **A one-line SMA200 trend filter does as well or better** (higher Sharpe in 5 of 6 out-of-sample cases). The agent's edge over buy-and-hold is mostly being out of the market in a downtrend | `docs/13` §4 |
-| **The agent's real benefit is risk control and explanation:** test max drawdown −16% (1D) / −19% (4h) vs −53% for buy-and-hold, with a written reason for every trade | `docs/13` §3 |
+| **The agent's real benefit is risk control and explanation:** test max drawdown −16% (1D) / −20% (4h) vs −53% for buy-and-hold, with a written reason for every trade | `docs/13` §3 |
 | **1h trading is fee-bound** (~260 trades in the test window); **1D is fragile to execution delay** (Sharpe +0.18 → −1.04 if filled a day later) | `docs/13` §6 |
 | **Free daily headline sentiment has no predictive value** for the next-day return or volatility (Spearman, Granger, event study all p > 0.05) | `docs/12` §4 |
 | **Only conviction smoothing helps consistently;** analyst contributions are within ±0.4 Sharpe and change sign between periods | `docs/13` §5 |

@@ -194,9 +194,10 @@ def build_snapshot(source: str = "hn", out: Path = HEADLINES_FILE) -> pd.DataFra
     """Merge one source's cached days into the frozen headline table."""
     frames = [tidy_day(json.loads(p.read_text()), pd.Timestamp(p.stem, tz="UTC"), source)
               for p in sorted(cache_dir(source).glob("*.json"))]
+    frames = [f for f in frames if len(f)]
     if not frames:
-        raise NewsError(f"no cached days in {cache_dir(source)}")
-    df = pd.concat([f for f in frames if len(f)], ignore_index=True)
+        raise NewsError(f"no relevant headlines cached in {cache_dir(source)}")
+    df = pd.concat(frames, ignore_index=True)
     out.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(out, index=False)
     return df

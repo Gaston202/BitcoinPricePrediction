@@ -93,6 +93,7 @@ class TradingSession:
         self.records: list[dict] = []
         self.states: "OrderedDict[int, dict]" = OrderedDict()
         self.notes: list[str] = []
+        self._news: tuple[str, pd.DataFrame] | None = None
         self.started_at = pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds")
         self._lock = threading.Lock()
         self._stop = threading.Event()
@@ -158,7 +159,9 @@ class TradingSession:
         """Attach the cached daily news scores; the news analyst abstains where there are none."""
         if "news" not in self.graph.cfg["analysts"]:
             return ind
-        name, table = best_available()
+        if self._news is None:  # the cache is a frozen file: read it once per session
+            self._news = best_available()
+        name, table = self._news
         note = (f"News analyst uses the {name} news scores (up to {pd.to_datetime(table['day']).max():%Y-%m-%d})."
                 if len(table) else "News analyst abstains: no news scores yet (python -m src.agents.news_sentiment).")
         if note not in self.notes:

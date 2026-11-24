@@ -13,8 +13,8 @@ business criterion) is the agent's job: a **hybrid multi-agent team** modelled o
 [TradingAgents](https://github.com/TauricResearch/TradingAgents) trades a $1,000 paper wallet on data kept up to date
 from Binance. An open-weights LLM only reads the daily news; every trade and risk limit is an explicit rule.
 
-**Business criterion verdict:** on the unseen test window the agent's Sharpe beats buy-and-hold on 4h (−0.11 vs −0.32)
-and 1D candles (+0.18 vs −0.34), not on 1h, and its max drawdown is −16 to −19% instead of −53%. The difference is
+**Business criterion verdict:** on the unseen test window the agent's Sharpe beats buy-and-hold on 4h (−0.04 vs −0.32)
+and 1D candles (+0.18 vs −0.34), not on 1h, and its max drawdown is −16 to −20% instead of −53%. The difference is
 not statistically significant, and a simple 200-candle moving-average filter does as well or better. Details:
 [`docs/13_agent_evaluation.md`](docs/13_agent_evaluation.md); design: [`docs/11`](docs/11_rule_based_agents.md);
 news: [`docs/12`](docs/12_news_sentiment.md).

@@ -5,7 +5,7 @@ on when it is run, so it reads these frozen copies instead (committed under data
 
   btcusdt_funding.parquet   Binance USDT-M funding rate, every 8h since 2019-09
   fear_greed.parquet        alternative.me Crypto Fear & Greed index, daily since 2018-02
-  news_headlines.parquet    GDELT Bitcoin headlines (src/data/news.py)
+  news_headlines.parquet    Bitcoin headlines, one source per snapshot (src/data/news.py)
   news_sentiment_*.parquet  daily news scores (src/agents/news_sentiment.py)
 
     python -m src.data.external      # re-download funding + Fear & Greed and freeze them

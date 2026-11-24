@@ -23,30 +23,30 @@ interval,window,sample,agent,versus,sharpe_diff,ci_low,ci_high,p_value
 1h,test,out-of-sample (test),agent:core+sentiment,static_50,-0.971578,-2.53055,0.662561,0.8955
 1h,test,out-of-sample (test),agent:core+sentiment,cash,-1.16856,-3.21064,0.671266,0.883
 1h,test,out-of-sample (test),agent:core+sentiment,agent:core,0.353806,-0.557417,1.32765,0.242
-4h,2022_bear,out-of-sample,agent:hybrid_lexicon,buy_and_hold,0.285327,-1.65412,2.24776,0.386
-4h,2022_bear,out-of-sample,agent:hybrid_lexicon,sma200_filter,-0.268176,-1.49983,1.01142,0.675
-4h,2022_bear,out-of-sample,agent:hybrid_lexicon,ema20_50_cross,0.440836,-0.851725,1.59424,0.24
-4h,2022_bear,out-of-sample,agent:hybrid_lexicon,static_50,0.405899,-1.5293,2.36683,0.336
-4h,2022_bear,out-of-sample,agent:hybrid_lexicon,cash,-1.10664,-3.1899,0.840142,0.8595
-4h,2022_bear,out-of-sample,agent:hybrid_lexicon,agent:core,-0.420422,-1.62467,0.63868,0.759
-4h,2023_bull,in-sample (development),agent:hybrid_lexicon,buy_and_hold,-0.729076,-2.09731,0.671359,0.861
-4h,2023_bull,in-sample (development),agent:hybrid_lexicon,sma200_filter,-0.425183,-1.3476,0.411254,0.85
-4h,2023_bull,in-sample (development),agent:hybrid_lexicon,ema20_50_cross,-0.432472,-1.4176,0.581234,0.798
-4h,2023_bull,in-sample (development),agent:hybrid_lexicon,static_50,-0.721123,-2.04422,0.659128,0.8635
-4h,2023_bull,in-sample (development),agent:hybrid_lexicon,cash,1.71155,-0.471325,3.77578,0.0685
-4h,2023_bull,in-sample (development),agent:hybrid_lexicon,agent:core,-0.0168766,-0.124577,0.0933945,0.6575
-4h,2025_range,half in development,agent:hybrid_lexicon,buy_and_hold,0.631005,-1.07866,2.29269,0.241
-4h,2025_range,half in development,agent:hybrid_lexicon,sma200_filter,1.11212,-0.0414466,2.31346,0.027
-4h,2025_range,half in development,agent:hybrid_lexicon,ema20_50_cross,1.02191,-0.330474,2.30902,0.0685
-4h,2025_range,half in development,agent:hybrid_lexicon,static_50,0.736405,-0.967104,2.36928,0.2015
-4h,2025_range,half in development,agent:hybrid_lexicon,cash,0.715551,-1.43998,2.74551,0.27
-4h,2025_range,half in development,agent:hybrid_lexicon,agent:core,-0.237422,-1.02065,0.468419,0.7325
-4h,test,out-of-sample (test),agent:hybrid_lexicon,buy_and_hold,0.209333,-1.54346,1.98177,0.414
-4h,test,out-of-sample (test),agent:hybrid_lexicon,sma200_filter,-0.328325,-1.41343,0.872328,0.7065
-4h,test,out-of-sample (test),agent:hybrid_lexicon,ema20_50_cross,-0.364061,-1.63979,0.983747,0.6935
-4h,test,out-of-sample (test),agent:hybrid_lexicon,static_50,0.093469,-1.624,1.80274,0.4585
-4h,test,out-of-sample (test),agent:hybrid_lexicon,cash,-0.106191,-2.20023,1.92321,0.5475
-4h,test,out-of-sample (test),agent:hybrid_lexicon,agent:core,-0.431533,-1.26068,0.378525,0.8455
+4h,2022_bear,out-of-sample,agent:hybrid_lexicon,buy_and_hold,0.376966,-1.56195,2.45504,0.3565
+4h,2022_bear,out-of-sample,agent:hybrid_lexicon,sma200_filter,-0.176538,-1.37077,1.04099,0.6195
+4h,2022_bear,out-of-sample,agent:hybrid_lexicon,ema20_50_cross,0.532475,-0.740894,1.67793,0.188
+4h,2022_bear,out-of-sample,agent:hybrid_lexicon,static_50,0.497538,-1.43148,2.50982,0.304
+4h,2022_bear,out-of-sample,agent:hybrid_lexicon,cash,-1.015,-3.07722,0.87,0.845
+4h,2022_bear,out-of-sample,agent:hybrid_lexicon,agent:core,-0.328784,-1.45788,0.706837,0.7165
+4h,2023_bull,in-sample (development),agent:hybrid_lexicon,buy_and_hold,-0.760601,-2.12524,0.653012,0.867
+4h,2023_bull,in-sample (development),agent:hybrid_lexicon,sma200_filter,-0.456708,-1.35973,0.393643,0.8635
+4h,2023_bull,in-sample (development),agent:hybrid_lexicon,ema20_50_cross,-0.463997,-1.44589,0.546203,0.8085
+4h,2023_bull,in-sample (development),agent:hybrid_lexicon,static_50,-0.752648,-2.06404,0.6503,0.8725
+4h,2023_bull,in-sample (development),agent:hybrid_lexicon,cash,1.68002,-0.50808,3.73594,0.0725
+4h,2023_bull,in-sample (development),agent:hybrid_lexicon,agent:core,-0.0484012,-0.132421,0.0421508,0.88
+4h,2025_range,half in development,agent:hybrid_lexicon,buy_and_hold,0.579721,-0.93408,2.07498,0.245
+4h,2025_range,half in development,agent:hybrid_lexicon,sma200_filter,1.06083,0.103575,2.17919,0.0155
+4h,2025_range,half in development,agent:hybrid_lexicon,ema20_50_cross,0.970625,-0.180591,2.19778,0.049
+4h,2025_range,half in development,agent:hybrid_lexicon,static_50,0.685121,-0.811418,2.20323,0.1975
+4h,2025_range,half in development,agent:hybrid_lexicon,cash,0.664267,-1.23102,2.45191,0.262
+4h,2025_range,half in development,agent:hybrid_lexicon,agent:core,-0.288706,-0.742317,0.0930913,0.8995
+4h,test,out-of-sample (test),agent:hybrid_lexicon,buy_and_hold,0.279522,-1.47794,2.00278,0.3855
+4h,test,out-of-sample (test),agent:hybrid_lexicon,sma200_filter,-0.258136,-1.28894,0.85781,0.6715
+4h,test,out-of-sample (test),agent:hybrid_lexicon,ema20_50_cross,-0.293872,-1.56402,0.973995,0.6525
+4h,test,out-of-sample (test),agent:hybrid_lexicon,static_50,0.163658,-1.51553,1.84612,0.432
+4h,test,out-of-sample (test),agent:hybrid_lexicon,cash,-0.0360021,-2.0415,1.93246,0.521
+4h,test,out-of-sample (test),agent:hybrid_lexicon,agent:core,-0.361344,-1.09651,0.358882,0.835
 1D,2022_bear,out-of-sample,agent:core,buy_and_hold,-0.522729,-2.38133,1.67424,0.6885
 1D,2022_bear,out-of-sample,agent:core,sma200_filter,-1.86535,-3.38839,0.253719,0.9565
 1D,2022_bear,out-of-sample,agent:core,ema20_50_cross,0.0415694,-1.16285,0.888781,0.479

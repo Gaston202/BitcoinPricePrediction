@@ -93,15 +93,18 @@ def attach_news(ind: pd.DataFrame, sentiment: pd.DataFrame | None) -> pd.DataFra
     score = daily["score"].where(daily["confidence"] > 0)
     table = pd.DataFrame({
         "news_score": score,
-        "news_score_3d": score.rolling(NEWS_SMOOTHING_DAYS, min_periods=1).mean(),
+        # Calendar window: days without headlines have no row, so a 3-row window could span a week.
+        "news_score_3d": score.rolling(f"{NEWS_SMOOTHING_DAYS}D", min_periods=1).mean(),
         "news_confidence": daily["confidence"],
         "news_count": daily["n_headlines"].astype(float),
         "news_reason": daily["reason"],
     })
     table.index = table.index + pd.Timedelta("1D")  # usable from the next midnight
-    joined = table.reindex(out.index.union(table.index)).ffill(limit=None).reindex(out.index)
+    # As-of join: each candle takes the latest table row as it is. Unlike ffill() on the union,
+    # this keeps the NaN of an uninformative day instead of filling it with an older score.
+    joined = table.reindex(out.index, method="ffill")
     # Do not carry a stale score across a long news outage (more than 3 days).
-    age = pd.Series(table.index, index=table.index).reindex(out.index.union(table.index)).ffill().reindex(out.index)
+    age = pd.Series(table.index, index=table.index).reindex(out.index, method="ffill")
     stale = (out.index.to_series() - age) > pd.Timedelta("3D")
     joined.loc[stale.to_numpy()] = np.nan
     for c in cols:

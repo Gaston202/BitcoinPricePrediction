@@ -202,6 +202,24 @@ def test_attach_news_drops_stale_scores_after_a_news_outage():
     assert np.isnan(out.loc["2024-03-08", "news_score"])
 
 
+def test_an_uninformative_day_is_not_filled_with_an_older_score():
+    sent = _sentiment([0.8, 0.0, 0.0])
+    sent.loc[1:, "confidence"] = 0.0           # days 2-3: no sentiment word / unrated
+    idx = pd.date_range("2024-03-01", "2024-03-04", freq="1D", tz="UTC")
+    out = attach_news(pd.DataFrame({"close": 1.0}, index=idx), sent)
+    assert out.loc["2024-03-02", "news_score"] == 0.8
+    assert np.isnan(out.loc["2024-03-03", "news_score"])   # was 0.8 before the fix
+    assert np.isnan(out.loc["2024-03-04", "news_score"])
+
+
+def test_the_3_day_news_average_uses_calendar_days_not_rows():
+    sent = _sentiment([0.9, 0.0, 0.0, 0.0, -0.3])
+    sent = sent.iloc[[0, 4]]                   # headlines only on day 1 and day 5
+    idx = pd.date_range("2024-03-01", "2024-03-06", freq="1D", tz="UTC")
+    out = attach_news(pd.DataFrame({"close": 1.0}, index=idx), sent)
+    assert out.loc["2024-03-06", "news_score_3d"] == pytest.approx(-0.3)   # day 1 is outside the window
+
+
 def test_news_analyst_votes_abstains_and_ignores_neutral_news():
     bull = news_analyst({"news_score_3d": 0.6, "news_confidence": 0.7, "news_reason": "ETF approved"})
     assert bull.score > 0 and bull.confidence == pytest.approx(0.7) and "ETF approved" in bull.evidence[0].text

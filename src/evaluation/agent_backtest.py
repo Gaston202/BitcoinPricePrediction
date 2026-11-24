@@ -7,7 +7,7 @@ before each window starts.
 Evaluation protocol
 -------------------
 * DEVELOPMENT (2023-01-01 -> 2025-06-30) is the only period used to choose anything: the
-  interval presets (scripts/tune_agent_presets.py) and which analyst team is "the" agent.
+  interval presets (`scripts/run_agent_evaluation.py tune`) and which analyst team is "the" agent.
 * The four walk-forward windows of the modeling phase are then reported. Two of them overlap
   the development period, so they are labelled in-sample; only 2022_bear and the test window
   are genuinely out-of-sample for the agent.
@@ -15,7 +15,7 @@ Evaluation protocol
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import pandas as pd
 
@@ -74,6 +74,7 @@ class MarketData:
 
     frames: dict[str, pd.DataFrame]
     tables: dict[tuple[str, str], pd.DataFrame]   # (interval, news scorer) -> indicators
+    p_up: dict[pd.Timestamp, pd.Series] = field(default_factory=dict)  # window start -> 1h quant P(up)
 
     @classmethod
     def build(cls, intervals=INTERVALS, scorers=("llm", "lexicon")) -> "MarketData":
@@ -109,7 +110,10 @@ def window_table(data: MarketData, interval: str, window: str, team: str = "core
     start, end = window_bounds(window)
     ind = data.table(interval, TEAM_NEWS_SCORER.get(team, "llm"))
     if interval == "1h" and use_quant:
-        ind = with_quant(ind, data.frames["1h"], start)
+        # The features and model depend only on the start, not on the team: compute them once.
+        if start not in data.p_up:
+            data.p_up[start] = with_quant(ind, data.frames["1h"], start)["p_up"]
+        ind = ind.assign(p_up=data.p_up[start])
     return ind.loc[start:end]
 
 

@@ -4,7 +4,7 @@ Two scorers share the same output (one row per day: score in [-1, 1], confidence
 number of headlines, a short reason):
 
 LLMScorer      an open-weights LLM served for free by OpenRouter (default
-               google/gemma-4-31b-it:free). It reads the headlines of several days per request
+               nvidia/nemotron-3-ultra-550b-a55b:free). It reads the headlines of several days per request
                and rates each day. Needs OPENROUTER_API_KEY (environment or .env file).
 LexiconScorer  a transparent word list (rally, approval, inflow ... / crash, hack, lawsuit ...).
                It cannot know the future, so it is the control for the LLM's look-ahead risk.
@@ -48,7 +48,7 @@ DEFAULT_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
 # 14 days per request keeps a full history (~1,400 days) near 100 requests, i.e. within two days
 # of the free tier's daily request limit; a median day has only 2 headlines, so prompts stay short.
 DAYS_PER_REQUEST = 14
-HEADLINES_PER_DAY = 20        # GDELT ranks by relevance, so these are the most relevant ones
+HEADLINES_PER_DAY = 20        # headlines come ranked by relevance, so these are the most relevant ones
 MAX_RETRIES = 5
 TIMEOUT = 120
 SENTIMENT_COLUMNS = ["day", "score", "confidence", "n_headlines", "reason", "scorer"]
@@ -193,8 +193,9 @@ class LLMScorer:
                 resp = self.session.post(OPENROUTER_URL, json=payload, timeout=TIMEOUT,
                                          headers={"Authorization": f"Bearer {self.api_key}",
                                                   "X-Title": "BTC news sentiment (student project)"})
-                if resp.status_code == 200:
-                    return resp.json()
+                data = resp.json() if resp.status_code == 200 else None
+                if isinstance(data, dict) and data.get("choices"):
+                    return data
             except (requests.RequestException, ValueError) as exc:  # dropped connection, cut-off body
                 logger.info("Network error (%s), retry %d in %.0fs", type(exc).__name__, attempt, wait)
                 time.sleep(wait)
@@ -203,7 +204,8 @@ class LLMScorer:
             body = resp.text[:300]
             if resp.status_code == 429 and "per-day" in body.lower():
                 raise QuotaExhausted(body)
-            if resp.status_code in (429, 500, 502, 503, 504):
+            # A 200 without "choices" carries an upstream provider error in its body: retry it.
+            if resp.status_code in (200, 429, 500, 502, 503, 504):
                 logger.info("OpenRouter %s, retry %d in %.0fs", resp.status_code, attempt, wait)
                 time.sleep(wait)
                 wait *= 2
