@@ -5,13 +5,25 @@ An ML model trained on historical Binance OHLCV data predicts the direction of B
 An AI agent combines those predictions with news sentiment and market indicators to make
 allocation decisions, and the strategy is evaluated through a historical backtest.
 
-The project follows **CRISP-DM**. Current status (2026-11-22): **Phases 1–5 are complete**, with four modeling
-iterations. The selected direction model is **1h, binary (up/down), LightGBM, Platt-calibrated**. It beats the
+The project follows **CRISP-DM**. Current status (2026-11-23): **Phases 1–5 are complete**, with four modeling
+iterations and a fully evaluated trading agent. The selected direction model is **1h, binary (up/down), LightGBM, Platt-calibrated**. It beats the
 majority, persistence **and reversal** baselines in 4/4 walk-forward windows, but its edge is small: about 54% hourly
 accuracy, 61% on the most confident 5%. Price alone gives **no daily direction edge**. Trading performance (the
-business criterion) is the agent's job and is not evaluated yet.
+business criterion) is the agent's job: a **hybrid multi-agent team** modelled on
+[TradingAgents](https://github.com/TauricResearch/TradingAgents) trades a $1,000 paper wallet on data kept up to date
+from Binance. An open-weights LLM only reads the daily news; every trade and risk limit is an explicit rule.
+
+**Business criterion verdict:** on the unseen test window the agent's Sharpe beats buy-and-hold on 4h (−0.04 vs −0.32)
+and 1D candles (+0.18 vs −0.34), not on 1h, and its max drawdown is −16 to −20% instead of −53%. The difference is
+not statistically significant, and a simple 200-candle moving-average filter does as well or better. Details:
+[`docs/13_agent_evaluation.md`](docs/13_agent_evaluation.md); design: [`docs/11`](docs/11_rule_based_agents.md);
+news: [`docs/12`](docs/12_news_sentiment.md).
 
 
+> **Just want to run it?** Step-by-step commands and the full list of tools: [`HOW_TO_RUN.md`](HOW_TO_RUN.md).
+> In short: `pip install -r requirements.txt`, then `python -m dashboard`. Tests: `make test`; the whole agent
+> evaluation: `make agent`.
+>
 > **New to the project?** Read [`docs/project_guide.pdf`](docs/project_guide.pdf): a 16-page beginner-friendly guide
 > from feature engineering to the final models, with every key figure explained.
 
@@ -67,6 +79,7 @@ No API key is needed. If you get **HTTP 451** (location blocked), use Binance's 
 data/
   raw/          frozen Binance snapshot (immutable, committed)
   interim/      cleaned 1h / 4h / 1D data (generated, gitignored)
+  external/     frozen funding, Fear & Greed, news headlines and their sentiment scores (committed)
 docs/
   01_business_understanding.md   objectives, success criteria, decisions log
   02_data_understanding.md       data quality and EDA findings
@@ -77,6 +90,9 @@ docs/
   08_conclusions.md              research questions, modeling results, limitations, roadmap
   09_literature_review.md        41 papers: models, labels, intraday horizons, validation, leakage flags
   10_modeling_handoff.md         2026-11-18 handoff (historical)
+  11_rule_based_agents.md        hybrid multi-agent trader (design, rules, bug fixes), data updater
+  12_news_sentiment.md           headlines, LLM vs lexicon scoring, predictive tests, look-ahead check
+  13_agent_evaluation.md         business criterion: baselines, bootstrap tests, ablation, sensitivity
 notebooks/
   01_data_collection.ipynb       source, metadata, data dictionary
   02_data_quality.ipynb          gaps, gap policy, outliers, resampling (EDA items 1, 5)
@@ -86,11 +102,20 @@ notebooks/
   05_modeling.ipynb              walk-forward protocol, targets, per-window features, 9 models, calibration, live rerun
   06_evaluation.ipynb            baselines (incl. reversal), revised criterion, sign-AUC, calibration, stability
   07_modeling_iteration.ipynb    four iterations, what changed and why, saved final model
+  08_agent_evaluation.ipynb      the agent vs. seven baselines on every window, verdict, ablation, robustness
+  09_news_sentiment.ipynb        news coverage, scoring, predictive value, look-ahead check
 reports/figures/                 PNGs exported by the notebooks for the report
 src/
   config.py                      all constants (symbol, dates, gap threshold, fees)
   data/collect.py                Binance REST collector (pagination, retries, 451 fallback)
   data/clean.py                  quality report, gap policy, robust outlier flags
+  data/binance.py                public Binance spot/futures + Fear & Greed data over HTTPS
+  data/update.py                 incremental sync of new candles -> data/live + *_latest.parquet
+  data/external.py               frozen copies of funding and Fear & Greed for reproducible backtests
+  data/news.py                   daily Bitcoin headlines (Hacker News or GDELT), resumable, frozen snapshot
+  agents/                        hybrid multi-agent trader (analysts, debate, trader, risk team,
+                                  portfolio manager, memory, quant analyst, replay/live sessions)
+  agents/news_sentiment.py       LLM (OpenRouter, Nemotron 3 Ultra) and lexicon news scorers, cached per day
   features/returns.py            log returns, resampling, 3-class labels
   features/engineering.py        candidate features (lags, momentum, volatility, trend, volume, calendar,
                                   interactions), chronological split
@@ -98,6 +123,11 @@ src/
   evaluation/baselines.py        majority, persistence, buy-and-hold metrics
   evaluation/strategy.py         predicted-label -> position backtest vs. buy-and-hold
   evaluation/criteria.py         formal yes/no checks against the docs/01 success criteria
+  evaluation/portfolio.py        paper-wallet simulation, 7 baseline strategies, Sharpe/Sortino/drawdown,
+                                  paired block-bootstrap Sharpe test
+  evaluation/agent_backtest.py   windows, frozen market data, running the agent on a window
+  evaluation/agent_experiments.py preset tuning, team selection, evaluation, ablation, sensitivity
+  evaluation/news_analysis.py    does news predict returns? (Spearman, Granger, event study)
   features/short_term.py         fast indicators, candle shape, intraday-from-1h features, candidate_pool
   features/targets.py            binary / vol-scaled 3-class / triple-barrier targets
   modeling/train.py              9 candidate classifiers, ensembles, model-choice manifest
@@ -105,10 +135,12 @@ src/
   modeling/multi_horizon.py      walk-forward: per-window selection, calibration, metrics, bootstrap, baselines
   modeling/range_model.py        next-day high/low regression (HAR + ML), 1D
   modeling/price_targets.py      next-bar high/low price levels with conformal bands, 5-day return (1h/4h)
-scripts/                         runnable experiments (direction, multi-horizon, range)
+scripts/                         runnable experiments (direction, multi-horizon, range, agent evaluation)
 reports/results/                 saved experiment outputs read by notebooks 05-07
+dashboard/                       admin dashboard (python -m dashboard): FastAPI + Chart.js
   visualization/style.py         shared chart style
-tests/                           pytest suite
+tests/                           pytest suite (runs in CI: .github/workflows/tests.yml)
+Makefile                         one-command pipeline: make test / data / news / sentiment / agent / notebooks
 ```
 
 ## Data
@@ -181,6 +213,27 @@ models on 1D (4/4 vs persistence, but no reversal check) → multi-horizon with 
 baseline. Final model saved in `src/modeling/selected_model.json`.
 
 A fifth iteration added next-bar high/low price levels with conformal bands (`src/modeling/selected_price_model.json`).
-Next: the agent, which adds news and macro data and trades selectively, judged on Sharpe net of fees.
+The agent that trades on it is evaluated in [`docs/13`](docs/13_agent_evaluation.md).
 
 Details: [`docs/07_modeling_iteration.md`](docs/07_modeling_iteration.md), [`docs/08_conclusions.md`](docs/08_conclusions.md).
+
+## Trading Agents & Dashboard
+
+```bash
+python -m dashboard                 # admin dashboard at http://127.0.0.1:8000 (syncs Binance data every 5 min)
+python -m src.data.update --watch   # or keep the data up to date from a terminal
+```
+
+* **The LLM reads, the rules decide.** The TradingAgents roles - seven analysts (trend, momentum, volatility,
+  volume/order flow, sentiment, the team's LightGBM as the quant analyst, and news scored once a day by an
+  open-weights LLM), a bull/bear debate, a research manager with the 5-tier
+  Buy/Overweight/Hold/Underweight/Sell rating, a trader, an aggressive/conservative/neutral risk team, a portfolio
+  manager with hard limits, and a memory that re-weights analysts by their hit rate - each implemented as explicit,
+  testable rules.
+* **Always up to date.** Each sync downloads only the candles that closed since the last one, plus futures funding
+  rates and the Fear & Greed index. The frozen snapshot stays untouched for the notebooks.
+* **Dashboard.** Replay any period (including the newly synced data) or trade live on 1m-4h candles, and inspect every
+  decision's full pipeline. Paper trading only.
+
+Details and design choices: [`docs/11_rule_based_agents.md`](docs/11_rule_based_agents.md); evaluation:
+[`docs/13_agent_evaluation.md`](docs/13_agent_evaluation.md).

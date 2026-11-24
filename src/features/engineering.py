@@ -110,7 +110,7 @@ def calendar_features(index: pd.DatetimeIndex) -> pd.DataFrame:
     A plain 0-6 integer would tell the model that Sunday (6) is far from Monday (0);
     the sin/cos encoding places the days on a circle so adjacent days stay adjacent.
     """
-    dow = index.dayofweek
+    dow = index.day_of_week
     angle = 2 * np.pi * dow / DAYS_PER_WEEK
     return pd.DataFrame({
         "dow_sin": np.sin(angle),
@@ -131,6 +131,31 @@ def interaction_features(features: pd.DataFrame) -> pd.DataFrame:
     })
 
 
+def feature_matrix(df: pd.DataFrame) -> pd.DataFrame:
+    """Every candidate feature, no label, one row per candle, NaN/inf kept as NaN.
+
+    Used by the live trading agent, where the newest candle has no label yet;
+    build_features() is exactly this plus the label and the NaN drop.
+    """
+    close = df["close"]
+    ret_1 = log_returns(close)
+    vol = rolling_volatility(ret_1)
+    features = pd.concat([
+        lagged_returns(close),
+        momentum(close),
+        vol,
+        pd.DataFrame({
+            f"atr_{ATR_WINDOW}": average_true_range(df) / close,
+            "vol_ratio": vol["vol_7d"] / vol["vol_30d"],
+        }),
+        trend_features(close),
+        volume_features(df),
+        calendar_features(df.index),
+    ], axis=1)
+    features = pd.concat([features, interaction_features(features)], axis=1)
+    return features.replace([np.inf, -np.inf], np.nan)
+
+
 def build_features(df: pd.DataFrame, horizon: int = LABEL_HORIZON,
                    flat_threshold: float = FLAT_THRESHOLD) -> pd.DataFrame:
     """Assemble every candidate feature + the label for one clean OHLCV frame (e.g. 1D candles).
@@ -139,6 +164,16 @@ def build_features(df: pd.DataFrame, horizon: int = LABEL_HORIZON,
     unfilled data gaps, division by a zero rolling std) are dropped, so every
     remaining row is model-ready.
     """
+    features = feature_matrix(df)
+    fwd = forward_log_return(df["close"], horizon)
+    features["label"] = direction_label(fwd, flat_threshold)
+    return features.dropna()
+
+
+def _build_features_reference(df: pd.DataFrame, horizon: int = LABEL_HORIZON,
+                              flat_threshold: float = FLAT_THRESHOLD) -> pd.DataFrame:
+    """Original single-function implementation, kept only so tests can prove
+    build_features() is unchanged by the feature_matrix() refactor."""
     close = df["close"]
     ret_1 = log_returns(close)
     vol = rolling_volatility(ret_1)

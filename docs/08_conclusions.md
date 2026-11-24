@@ -2,7 +2,8 @@
 
 Scope: CRISP-DM Business Understanding → Evaluation, on Bitcoin (BTCUSDT) as the case study for cryptocurrency
 price prediction. Sections 1–2 are the midterm answers (`notebooks/01`–`03`). Section 2b adds the modeling results
-(updated 2026-11-22; `notebooks/04`–`07`, `docs/04`–`07`).
+(updated 2026-11-22; `notebooks/04`–`07`, `docs/04`–`07`). Section 2c adds the agent, news and business-criterion
+results (2026-11-23; `notebooks/08`–`09`, `docs/11`–`13`).
 
 ## 1. Answers to the research questions
 
@@ -36,15 +37,31 @@ price prediction. Sections 1–2 are the midterm answers (`notebooks/01`–`03`)
 | **Next-bar high/low is predictable as price levels:** HAR beats the 20-bar average by 2–7%, and the band median by 11–13%. Conformal 10/90% bands are breached 8.7–9.9% of the time (target 10%). Saved in `src/modeling/selected_price_model.json` | `docs/06` §8 |
 | **No 5-day forecast from price:** predicting a 5-day return of zero beats every model | `docs/06` §8 |
 
+## 2c. Agent, news and the business criterion (2026-11-23)
+
+| Finding | Evidence |
+|---|---|
+| **Business criterion met on 4h and 1D candles, not on 1h — but not convincingly.** Test-window Sharpe: 4h −0.04 and 1D +0.18 vs −0.32 / −0.34 for buy-and-hold; 1h −1.17 vs −0.31 | `docs/13` §3–4 |
+| **No difference is statistically significant** (paired block bootstrap, p = 0.26–0.39 on the test window) | `docs/13` §3 |
+| **A one-line SMA200 trend filter does as well or better** (higher Sharpe in 5 of 6 out-of-sample cases). The agent's edge over buy-and-hold is mostly being out of the market in a downtrend | `docs/13` §4 |
+| **The agent's real benefit is risk control and explanation:** test max drawdown −16% (1D) / −20% (4h) vs −53% for buy-and-hold, with a written reason for every trade | `docs/13` §3 |
+| **1h trading is fee-bound** (~260 trades in the test window); **1D is fragile to execution delay** (Sharpe +0.18 → −1.04 if filled a day later) | `docs/13` §6 |
+| **Free daily headline sentiment has no predictive value** for the next-day return or volatility (Spearman, Granger, event study all p > 0.05) | `docs/12` §4 |
+| **Only conviction smoothing helps consistently;** analyst contributions are within ±0.4 Sharpe and change sign between periods | `docs/13` §5 |
+| Two engine bugs fixed (kill switch re-firing, take-profit buy-back); presets and team now chosen reproducibly on the development period only | `docs/11` §3–4 |
+
 ## 3. Limitations
 
 * **One asset, one exchange.** Results describe BTCUSDT on Binance. Other coins are more volatile and less
   liquid; the findings must be re-checked before generalizing to "crypto".
-* **Price and volume only.** No news, sentiment or on-chain data yet. Price alone carries a small 1h edge and no
-  daily edge (§2b).
+* **Inputs.** Price and volume for the models; funding, long/short ratio, Fear & Greed and one tech-leaning news
+  source for the agent. No on-chain data. Price alone carries a small 1h edge and no daily edge (§2b); news adds
+  none (§2c).
+* **One out-of-sample test window, in a falling market** (§2c). Holding less BTC wins by construction there; the
+  agent has not been tested on an unseen bull market.
 * **ML metrics are not trading results.** About 54% hourly accuracy is small next to 0.1% fees per side, and naive
-  hourly sign trading loses money after costs in the literature (`docs/09` #21). The business criterion is only
-  tested once the agent trades selectively.
+  hourly sign trading loses money after costs in the literature (`docs/09` #21). Confirmed: following the model
+  alone loses 41% in the test window, and the 1h agent is fee-bound (§2c).
 * **Small daily sample.** About 2,800 model-ready days, of which 1,954 are for training. Mutual-information
   estimates at this size are noisy.
 * **Regime dependence.** Addressed with four walk-forward windows (bear, bull, range, latest) and 17 quarterly refits.
@@ -56,14 +73,14 @@ price prediction. Sections 1–2 are the midterm answers (`notebooks/01`–`03`)
 
 ## 4. Future work (project roadmap)
 
-1. **Modeling (done, 2026-11-22).** 9 models × 3 horizons × 3 targets under walk-forward with per-window selection,
-   calibration and a reversal baseline (§2b). Next-bar high/low price levels with 10/90% bands followed (done
-   2026-11-22). The 5-day return showed no edge.
-2. **Richer inputs.** Daily **news sentiment** (aligned with the 1D horizon), **market indicators** (RSI, MACD,
-   moving-average trends, funding rates, Fear & Greed index), and hour/weekday seasonality.
-3. **AI agent.** Combine the model's class probabilities with sentiment and indicators to decide portfolio
-   allocation (long / cash, position size). Use the volatility signal from RQ3 for position sizing.
-4. **Backtesting.** Simulate the agent's portfolio on historical data, net of 0.1% fees per side, and compare
-   its Sharpe ratio and drawdown with buy-and-hold on the same windows (the business success criterion).
+1. **Modeling (done, 2026-11-22).** 9 models × 3 horizons × 3 targets under walk-forward, calibration, a reversal
+   baseline, and next-bar high/low levels with 10/90% bands (§2b).
+2. **Richer inputs (done, 2026-11-23).** RSI, MACD, moving-average trends, funding, long/short ratio, Fear & Greed
+   and LLM-scored news, all frozen in `data/external/`. Next: a richer news source (GDELT, once its rate limit
+   allows a full download) and on-chain data.
+3. **AI agent (done).** Hybrid multi-agent trader: an LLM reads the news, rules decide (`docs/11`).
+4. **Backtesting (done).** Business criterion, seven baselines, bootstrap tests, ablation, sensitivity (`docs/13`).
+   Next: make the trend filter the backbone and use the other analysts for position size inside an uptrend;
+   walk-forward re-tuning over more out-of-sample years; model a realistic 1D execution time.
 5. **More cryptocurrencies.** The pipeline is symbol-agnostic (`config.SYMBOL`); extend it to ETH, SOL and others,
    and test whether the findings hold across coins.

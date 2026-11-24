@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>BTC Multi-Agent Trader · Admin</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <!-- Vendored (Chart.js 4.4.4 + date-fns adapter 3.0.0, MIT) so the dashboard works offline. -->
+  <script src="/static/vendor/chart.umd.js"></script>
+  <script src="/static/vendor/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">₿</span>
+    <div>
+      <h1>BTC Multi-Agent Trader</h1>
+      <p class="sub">Rule-based agent team · Binance data · paper trading</p>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="overview" role="tab">Overview</button>
+    <button class="tab" data-tab="trading" role="tab">Agent Trading</button>
+    <button class="tab" data-tab="figures" role="tab">Report figures</button>
+  </nav>
+  <div class="datapill" id="dataPill" title="Binance data sync">
+    <span class="dot" id="dataDot"></span><span id="dataText">Data: checking…</span>
+    <button id="syncBtn" class="mini">Sync now</button>
+  </div>
+  <button id="themeToggle" class="ghost" title="Toggle light/dark">Light / Dark</button>
+</header>
+
+<main>
+  <!-- ============================== OVERVIEW ============================== -->
+  <section id="tab-overview" class="tab-panel active">
+    <div id="overviewLoading" class="loading">Loading the latest data and running the agent backtests…</div>
+    <div id="overviewBody" hidden>
+      <div class="kpis" id="overviewKpis"></div>
+      <div class="callout" id="verdict"></div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>BTC/USDT daily close</h2>
+          <span class="hint">Log scale · the shaded band is data downloaded from Binance after the frozen research snapshot</span>
+        </div>
+        <div class="chart tall"><canvas id="priceHistory"></canvas></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <h2>Agent team vs. buy-and-hold, unseen test window (4h candles)</h2>
+            <div class="legend"><span><i class="sw s1"></i>Agent wallet</span><span><i class="sw s2"></i>Buy-and-hold</span></div>
+          </div>
+          <div class="chart"><canvas id="mainBacktest"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>Backtests of the rule-based agents</h2>
+            <span class="hint">$1,000 start · 0.1% fee per trade · default settings</span>
+          </div>
+          <div class="table-wrap"><table class="table" id="backtestTable"></table></div>
+          <p class="foot">Settings were chosen on 2023-01 → 2025-06 only, never on the test window.</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <h2>What the agent team thinks right now (4h)</h2>
+            <span class="hint" id="nowTime"></span>
+          </div>
+          <div id="agentNow"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>Crypto Fear &amp; Greed index</h2>
+            <span class="hint">0 = extreme fear · 100 = extreme greed · used by the sentiment analyst</span>
+          </div>
+          <div class="chart"><canvas id="fearGreed"></canvas></div>
+          <p class="foot" id="fgEmpty" hidden>No sentiment data yet - press "Sync now" with internet access.</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <h2>30-day volatility (annualized)</h2>
+            <span class="hint">Volatility clusters - the volatility analyst and the risk team watch it</span>
+          </div>
+          <div class="chart"><canvas id="volatility"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>Team's ML model (used by the quant analyst)</h2>
+            <span class="hint" id="teamModelHint"></span>
+          </div>
+          <div class="chart short"><canvas id="teamModel"></canvas></div>
+          <p class="foot" id="teamModelFeatures"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== TRADING ============================== -->
+  <section id="tab-trading" class="tab-panel">
+    <div class="banner">Paper trading only - a simulated wallet. No real money is used and no order is ever sent to an exchange.
+      The agents are rules, not an LLM: every decision below can be traced line by line.</div>
+
+    <div class="card controls">
+      <div class="field">
+        <label for="mode">Mode</label>
+        <select id="mode">
+          <option value="replay">Replay - stored Binance candles</option>
+          <option value="live">Live - real Binance price, now</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="interval">Candle</label>
+        <select id="interval"></select>
+      </div>
+      <div class="field" id="periodField">
+        <label for="period">Period</label>
+        <select id="period">
+          <option value="new">New data since the snapshot</option>
+          <option value="30d">Last 30 days</option>
+          <option value="90d" selected>Last 90 days</option>
+          <option value="180d">Last 180 days</option>
+          <option value="365d">Last 365 days</option>
+          <option value="test">Team's test window (2025-07 →)</option>
+        </select>
+      </div>
+      <div class="field" id="speedField">
+        <label for="speed">Speed <span id="speedVal">20</span> candles/s</label>
+        <input id="speed" type="range" min="1" max="200" value="20">
+      </div>
+      <div class="field">
+        <label for="cash">Starting wallet ($)</label>
+        <input id="cash" type="number" min="1" value="1000">
+      </div>
+      <div class="field">
+        <label for="riskProfile">Risk profile</label>
+        <select id="riskProfile">
+          <option value="conservative">Conservative</option>
+          <option value="neutral" selected>Neutral</option>
+          <option value="aggressive">Aggressive</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="debateRounds">Debate rounds</label>
+        <select id="debateRounds"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
+      </div>
+      <div class="field">
+        <label for="riskRounds">Risk rounds</label>
+        <select id="riskRounds"><option selected>1</option><option>2</option><option>3</option></select>
+      </div>
+      <div class="field analysts-field">
+        <label>Analyst team</label>
+        <div class="checks" id="analystChecks"></div>
+      </div>
+      <div class="actions">
+        <button id="startBtn" class="primary">▶ Start agents</button>
+        <button id="stopBtn" class="ghost" disabled>■ Stop</button>
+      </div>
+      <p class="foot full" id="presetHint"></p>
+    </div>
+
+    <div class="status-row">
+      <span class="pill" id="statusPill">idle</span>
+      <span id="statusMsg" class="status-msg">Choose a mode and press Start.</span>
+      <div class="progress" id="progressWrap" hidden><div id="progressBar"></div></div>
+    </div>
+    <div id="notes" class="notes"></div>
+
+    <div class="kpis" id="tradeKpis"></div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Bitcoin price and the agents' trades</h2>
+        <div class="legend">
+          <span><i class="sw s1"></i>BTC price (real)</span>
+          <span><i class="sw s3 dashed"></i>Active stop-loss</span>
+          <span><b class="mk buy">▲</b>Buy</span><span><b class="mk sell">▼</b>Sell</span>
+        </div>
+      </div>
+      <div class="chart tall"><canvas id="liveChart"></canvas></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <h2>Debate conviction (bull − bear)</h2>
+          <div class="legend"><span><i class="sw s1"></i>Smoothed (rated)</span><span><i class="sw s4"></i>Per candle</span></div>
+        </div>
+        <div class="chart"><canvas id="convictionChart"></canvas></div>
+        <p class="foot">Above +0.40 Buy · +0.15 Overweight · between: Hold · −0.15 Underweight · −0.40 Sell.</p>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h2>Wallet value</h2>
+          <div class="legend"><span><i class="sw s1"></i>Agent team</span><span><i class="sw s2"></i>Buy-and-hold</span></div>
+        </div>
+        <div class="chart"><canvas id="walletChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Agent pipeline</h2>
+        <span class="hint" id="pipelineHint">The latest decision. Click any row of the decision log to inspect it.</span>
+      </div>
+      <div id="pipeline" class="pipeline"><p class="muted">No decision yet.</p></div>
+    </div>
+
+    <div class="grid-2 wide-right">
+      <div class="card">
+        <div class="card-head">
+          <h2>Memory: who has been right?</h2>
+          <span class="hint">Each decision is settled 6 candles later; hit rates re-weight the analysts</span>
+        </div>
+        <div class="chart short"><canvas id="memoryChart"></canvas></div>
+        <ul class="lessons" id="lessons"></ul>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h2>BTC share of the wallet</h2>
+        </div>
+        <div class="chart short"><canvas id="exposureChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Decision log</h2>
+        <span class="hint">Newest first · click a row to open its full pipeline</span>
+      </div>
+      <div class="table-wrap"><table class="table log" id="logTable">
+        <thead><tr><th>Time</th><th>Price</th><th>Rating</th><th>Conviction</th><th>Action</th><th>BTC share</th><th>Wallet</th><th>Portfolio manager</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ============================== FIGURES ============================== -->
+  <section id="tab-figures" class="tab-panel">
+    <p class="muted">Every figure exported by the notebooks into <code>reports/figures/</code>. Click to enlarge.</p>
+    <div id="gallery"></div>
+  </section>
+</main>
+
+<div id="lightbox" class="lightbox" hidden><img alt=""><p></p></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

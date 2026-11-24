@@ -209,16 +209,20 @@ def tune_class_weights(
 
     Must only be called with validation data, never test (see FEATURE_COLUMNS docstring
     in this module and docs/04_data_preparation.md on the chronological split).
-    One class is held at weight 1.0 as a reference; only the other two vary, since
-    only the ratios between weights affect the argmax.
+    One class is held at weight 1.0 as a reference (FLAT when present, otherwise the
+    first class); the others vary, since only the ratios between weights affect the
+    argmax. Works for any number of classes, e.g. a training window that never saw
+    a DOWN day (the previous version assumed exactly [DOWN, FLAT, UP] and crashed).
     """
     class_order = list(model.classes_)
     proba = model.predict_proba(X_val)
-    y = y_val.to_numpy()
+    ref = class_order.index(0.0) if 0.0 in class_order else 0
+    free = [i for i in range(len(class_order)) if i != ref]
 
     best = {"weights": {c: 1.0 for c in class_order}, "macro_f1": macro_f1(y_val, model.predict(X_val))}
-    for w0, w2 in itertools.product(grid, grid):
-        w = np.array([w0, 1.0, w2])
+    for combo in itertools.product(grid, repeat=len(free)):
+        w = np.ones(len(class_order))
+        w[free] = combo
         pred = np.array(class_order)[(proba * w).argmax(axis=1)]
         f1 = macro_f1(y_val, pred)
         if f1 > best["macro_f1"]:

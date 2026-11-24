@@ -1,0 +1,273 @@
+"""News collection, sentiment scoring and the news analyst. No network: every API is faked."""
+
+import json
+
+import numpy as np
+import pandas as pd
+import pytest
+
+from src.agents import news_sentiment as ns
+from src.agents.analysts import news_analyst
+from src.agents.market_data import attach_news
+from src.data import news
+
+DAY = pd.Timestamp("2024-03-05", tz="UTC")
+
+
+# --------------------------------------------------------------------------- collection
+def test_clean_title_restores_gdelt_punctuation():
+    assert news.clean_title("Bitcoin rises , analysts say ( again ) .") == "Bitcoin rises, analysts say (again)."
+
+
+def test_tidy_day_filters_irrelevant_and_duplicate_headlines():
+    raw = [
+        {"seendate": "20240305T120000Z", "title": "Bitcoin hits record high", "domain": "a.com", "url": "u1"},
+        {"seendate": "20240305T090000Z", "title": "Bitcoin hits record high !", "domain": "b.com", "url": "u2"},
+        {"seendate": "20240305T100000Z", "title": "Stock Market", "domain": "c.com", "url": "u3"},
+        {"seendate": "20240305T110000Z", "title": "Crypto lender files for bankruptcy", "domain": "d.com", "url": "u4"},
+    ]
+    df = news.tidy_day(raw, DAY, "gdelt")
+    assert list(df["title"]) == ["Bitcoin hits record high!", "Crypto lender files for bankruptcy"]
+    assert df["domain"].iloc[0] == "b.com"          # the first sighting of the duplicate is kept
+    assert (df["day"] == DAY).all() and list(df["rank"]) == [0, 1]
+
+
+def test_tidy_hn_ranks_by_points():
+    hits = [{"title": "Bitcoin ETF approved", "url": "https://www.sec.gov/x", "created_at": "2024-03-05T10:00:00Z", "points": 5},
+            {"title": "Bitcoin crashes", "url": None, "created_at": "2024-03-05T11:00:00Z", "points": 50}]
+    df = news.tidy_day(hits, DAY, "hn")
+    assert list(df["title"]) == ["Bitcoin crashes", "Bitcoin ETF approved"]
+    assert list(df["domain"]) == ["news.ycombinator.com", "sec.gov"]
+
+
+def test_download_is_resumable_and_snapshot_merges_the_cache(tmp_path, monkeypatch):
+    monkeypatch.setattr(news, "NEWS_DIR", tmp_path)
+    calls = []
+
+    def fake_fetch(day, session):
+        calls.append(day)
+        return [{"title": f"Bitcoin news {day:%d}", "url": "", "created_at": day.isoformat(), "points": 1}]
+
+    assert news.download("2024-03-01", "2024-03-03", "hn", fetch=fake_fetch, gap=0) == 3
+    assert news.download("2024-03-01", "2024-03-04", "hn", fetch=fake_fetch, gap=0) == 1  # only the new day
+    assert len(calls) == 4
+    df = news.build_snapshot("hn", out=tmp_path / "h.parquet")
+    assert df["day"].nunique() == 4 and (df["source"] == "hn").all()
+    cov = news.coverage(df, "2024-03-01", "2024-03-06")
+    assert list(cov["headlines"]) == [1, 1, 1, 1, 0, 0]
+
+
+def test_download_retries_after_a_throttled_answer(tmp_path, monkeypatch):
+    monkeypatch.setattr(news, "NEWS_DIR", tmp_path)
+    monkeypatch.setattr(news.time, "sleep", lambda s: None)
+    answers = iter([news.NewsError("busy"), []])
+
+    def flaky(day, session):
+        a = next(answers)
+        if isinstance(a, Exception):
+            raise a
+        return a
+
+    assert news.download("2024-03-01", "2024-03-01", "gdelt", fetch=flaky, gap=0) == 1
+
+
+# --------------------------------------------------------------------------- scoring
+def test_lexicon_scores_direction_and_negation():
+    assert ns.lexicon_headline_score("Bitcoin surges to record high") > 0.5
+    assert ns.lexicon_headline_score("Exchange hacked, bitcoin plunges") < -0.5
+    assert ns.lexicon_headline_score("SEC does not approve bitcoin ETF") < 0
+    assert ns.lexicon_headline_score("Bitcoin conference starts in Miami") is None
+
+
+def test_lexicon_day_without_sentiment_words_has_zero_confidence():
+    rows = ns.LexiconScorer().score_days({DAY: ["Bitcoin conference starts"]})
+    assert rows[0]["confidence"] == 0 and rows[0]["score"] == 0
+
+
+def test_parse_llm_json_validates_clips_and_fills_missing_days():
+    text = '```json\n{"days": [{"day": 1, "score": 3, "confidence": 0.9, "reason": "ETF"}, {"day": "x"}]}\n```'
+    rows = ns.parse_llm_json(text, 2)
+    assert rows[0] == {"score": 1.0, "confidence": 0.9, "reason": "ETF"}
+    assert rows[1]["confidence"] == 0.0
+
+
+class FakeResponse:
+    def __init__(self, status, payload=None, text=""):
+        self.status_code, self._payload, self.text = status, payload, text or json.dumps(payload)
+
+    def json(self):
+        return self._payload
+
+
+class FakeSession:
+    def __init__(self, responses):
+        self.responses, self.payloads = list(responses), []
+
+    def post(self, url, json=None, timeout=None, headers=None):
+        self.payloads.append(json)
+        return self.responses.pop(0)
+
+
+def _llm_answer(n):
+    content = json.dumps({"days": [{"day": k, "score": 0.5, "confidence": 0.8, "reason": "r"} for k in range(1, n + 1)]})
+    return FakeResponse(200, {"choices": [{"message": {"content": content}}]})
+
+
+def test_llm_prompt_hides_the_dates_and_parses_the_answer():
+    session = FakeSession([_llm_answer(2)])
+    scorer = ns.LLMScorer(api_key="test", session=session, pause=0)
+    days = {DAY: ["Bitcoin rallies"], DAY + pd.Timedelta("1D"): ["Bitcoin falls"]}
+    rows = scorer.score_days(days)
+    prompt = session.payloads[0]["messages"][1]["content"]
+    assert "2024" not in prompt and "Day 1:" in prompt and "Day 2:" in prompt
+    assert session.payloads[0]["temperature"] == 0 and session.payloads[0]["model"] == ns.DEFAULT_MODEL
+    assert [r["day"] for r in rows] == list(days) and rows[0]["score"] == 0.5
+
+
+def test_broken_json_is_rescored_in_halves_and_a_hopeless_day_left_unrated():
+    broken = FakeResponse(200, {"choices": [{"message": {"content": '{"days": [{"day": 1, "score": 0.5 "x"'}}]})
+    session = FakeSession([broken, _llm_answer(1), broken])
+    scorer = ns.LLMScorer(api_key="test", session=session, pause=0)
+    days = {DAY: ["Bitcoin rallies"], DAY + pd.Timedelta("1D"): ["Bitcoin falls"]}
+    rows = scorer.score_days(days)
+    assert [r["day"] for r in rows] == list(days)
+    assert rows[0]["score"] == 0.5 and rows[0]["confidence"] == 0.8      # first half re-asked alone
+    assert rows[1]["confidence"] == 0.0 and "unreadable" in rows[1]["reason"]
+    assert len(session.payloads) == 3
+
+
+def test_a_dropped_connection_is_retried(monkeypatch):
+    import requests
+    monkeypatch.setattr(ns.time, "sleep", lambda s: None)
+
+    class Flaky(FakeSession):
+        def post(self, *a, **k):
+            if not self.payloads:
+                self.payloads.append(None)
+                raise requests.exceptions.ChunkedEncodingError("Response ended prematurely")
+            return super().post(*a, **k)
+
+    scorer = ns.LLMScorer(api_key="test", session=Flaky([_llm_answer(1)]), pause=0)
+    assert scorer.score_days({DAY: ["Bitcoin rallies"]})[0]["score"] == 0.5
+
+
+def test_llm_scorer_needs_a_key(monkeypatch, tmp_path):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setattr(ns, "load_api_key", lambda: None)
+    with pytest.raises(RuntimeError, match="OPENROUTER_API_KEY"):
+        ns.LLMScorer()
+
+
+def test_load_api_key_reads_a_dotenv_file(tmp_path, monkeypatch):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    env = tmp_path / ".env"
+    env.write_text('OTHER=1\nOPENROUTER_API_KEY="sk-or-abc"\n')
+    assert ns.load_api_key(env) == "sk-or-abc"
+
+
+def test_score_all_resumes_and_stops_cleanly_on_quota(tmp_path):
+    days = pd.date_range("2024-03-01", periods=5, freq="1D", tz="UTC")
+    heads = pd.DataFrame({"day": days, "rank": 0, "title": ["Bitcoin rallies"] * 5})
+    session = FakeSession([_llm_answer(2), FakeResponse(429, text="Rate limit exceeded: free-models-per-day")])
+    scorer = ns.LLMScorer(api_key="k", session=session, pause=0)
+    path = tmp_path / "s.parquet"
+    out = ns.score_all(heads, scorer, batch_days=2, path=path)
+    assert len(out) == 2                                     # quota hit on the second batch
+    session.responses = [_llm_answer(2), _llm_answer(1)]
+    out = ns.score_all(heads, scorer, batch_days=2, path=path)
+    assert len(out) == 5 and out["day"].is_unique            # resumed, nothing scored twice
+
+
+# --------------------------------------------------------------------------- join + analyst
+def _sentiment(scores):
+    days = pd.date_range("2024-03-01", periods=len(scores), freq="1D", tz="UTC")
+    return pd.DataFrame({"day": days, "score": scores, "confidence": 0.8, "n_headlines": 10,
+                         "reason": "r", "scorer": "test"})
+
+
+def test_attach_news_uses_a_day_only_after_it_has_ended():
+    idx = pd.date_range("2024-03-01", "2024-03-04", freq="4h", tz="UTC")
+    ind = pd.DataFrame({"close": 1.0}, index=idx)
+    out = attach_news(ind, _sentiment([0.9, -0.9, 0.0]))
+    assert out.loc["2024-03-01", "news_score"].isna().all()                  # day 1 not finished yet
+    assert (out.loc["2024-03-02", "news_score"] == 0.9).all()                # day 1 known from day 2
+    assert (out.loc["2024-03-03", "news_score"] == -0.9).all()
+    assert out.loc["2024-03-03 00:00", "news_score_3d"] == pytest.approx(0.0)
+
+
+def test_attach_news_drops_stale_scores_after_a_news_outage():
+    idx = pd.date_range("2024-03-01", "2024-03-10", freq="1D", tz="UTC")
+    out = attach_news(pd.DataFrame({"close": 1.0}, index=idx), _sentiment([0.5]))
+    assert out.loc["2024-03-02", "news_score"] == 0.5
+    assert np.isnan(out.loc["2024-03-08", "news_score"])
+
+
+def test_an_uninformative_day_is_not_filled_with_an_older_score():
+    sent = _sentiment([0.8, 0.0, 0.0])
+    sent.loc[1:, "confidence"] = 0.0           # days 2-3: no sentiment word / unrated
+    idx = pd.date_range("2024-03-01", "2024-03-04", freq="1D", tz="UTC")
+    out = attach_news(pd.DataFrame({"close": 1.0}, index=idx), sent)
+    assert out.loc["2024-03-02", "news_score"] == 0.8
+    assert np.isnan(out.loc["2024-03-03", "news_score"])   # was 0.8 before the fix
+    assert np.isnan(out.loc["2024-03-04", "news_score"])
+
+
+def test_the_3_day_news_average_uses_calendar_days_not_rows():
+    sent = _sentiment([0.9, 0.0, 0.0, 0.0, -0.3])
+    sent = sent.iloc[[0, 4]]                   # headlines only on day 1 and day 5
+    idx = pd.date_range("2024-03-01", "2024-03-06", freq="1D", tz="UTC")
+    out = attach_news(pd.DataFrame({"close": 1.0}, index=idx), sent)
+    assert out.loc["2024-03-06", "news_score_3d"] == pytest.approx(-0.3)   # day 1 is outside the window
+
+
+def test_news_analyst_votes_abstains_and_ignores_neutral_news():
+    bull = news_analyst({"news_score_3d": 0.6, "news_confidence": 0.7, "news_reason": "ETF approved"})
+    assert bull.score > 0 and bull.confidence == pytest.approx(0.7) and "ETF approved" in bull.evidence[0].text
+    assert news_analyst({}).confidence == 0
+    assert news_analyst({"news_score_3d": 0.05, "news_confidence": 0.9}).evidence == []
+
+
+# --------------------------------------------------------------------------- statistics
+from src.evaluation import news_analysis as na  # noqa: E402
+
+
+def _synthetic(informative: bool, n=400, seed=0):
+    rng = np.random.default_rng(seed)
+    days = pd.date_range("2023-01-01", periods=n, freq="1D", tz="UTC")
+    score = rng.uniform(-1, 1, n)
+    ret = rng.normal(0, 0.02, n)
+    if informative:
+        ret[1:] += 0.02 * score[:-1]   # today's news moves tomorrow's price
+    close = pd.Series(100 * np.exp(np.cumsum(ret)), index=days)
+    sent = pd.DataFrame({"day": days, "score": score, "confidence": 0.8, "n_headlines": 10})
+    return sent, close
+
+
+def test_align_compares_a_days_news_with_the_next_days_return():
+    sent, close = _synthetic(False, n=10)
+    a = na.align(sent, close)
+    r = np.log(close).diff()
+    assert a["next_ret"].iloc[0] == pytest.approx(r.iloc[1])
+    assert a.index[-1] < close.index[-1]           # the last day has no next return
+
+
+def test_informative_news_is_detected_and_noise_is_not():
+    sent, close = _synthetic(True)
+    a = na.align(sent, close)
+    corr = na.correlations(a).set_index("compared with")
+    assert corr.loc["next_ret", "spearman_rho"] > 0.3 and corr.loc["next_ret", "p_value"] < 0.001
+    g = na.granger(a).query("lag_days == 1").set_index("direction")
+    assert g.loc["score -> same_ret", "p_value"] < 0.001
+    ev = na.event_study(a).set_index("group")
+    assert ev.loc["most bullish news", "mean_5d_return"] > ev.loc["most bearish news", "mean_5d_return"]
+
+    sent0, close0 = _synthetic(False, seed=1)
+    corr0 = na.correlations(na.align(sent0, close0)).set_index("compared with")
+    assert corr0.loc["next_ret", "p_value"] > 0.01
+
+
+def test_scorer_agreement():
+    sent, _ = _synthetic(False, n=50)
+    other = sent.assign(score=sent["score"] * 0.5)
+    res = na.scorer_agreement(sent, other)
+    assert res["spearman_rho"] == pytest.approx(1.0) and res["sign_agreement"] == 1.0

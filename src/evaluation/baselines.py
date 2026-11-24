@@ -42,7 +42,12 @@ def persistence_baseline(labels: pd.Series, horizon: int = 1) -> dict:
 def sharpe_ratio(log_rets: pd.Series, rule: str) -> float:
     """Annualized Sharpe of simple returns, risk-free rate assumed 0."""
     simple = np.expm1(log_rets.dropna())
-    return float(simple.mean() / simple.std() * np.sqrt(periods_per_year(rule)))
+    std = simple.std()
+    # A constant (e.g. always-flat) return series has no risk: report 0, not NaN,
+    # so criteria comparisons like `sharpe > buy_and_hold_sharpe` stay meaningful.
+    if len(simple) < 2 or not np.isfinite(std) or std == 0:
+        return 0.0
+    return float(simple.mean() / std * np.sqrt(periods_per_year(rule)))
 
 
 def max_drawdown(log_rets: pd.Series) -> float:

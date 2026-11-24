@@ -1,0 +1,69 @@
+interval,window,sample,agent,versus,sharpe_diff,ci_low,ci_high,p_value
+1h,2022_bear,out-of-sample,agent:core+sentiment,buy_and_hold,-0.232979,-1.87374,1.5048,0.632
+1h,2022_bear,out-of-sample,agent:core+sentiment,sma200_filter,0.978797,-0.230538,2.23065,0.0645
+1h,2022_bear,out-of-sample,agent:core+sentiment,ema20_50_cross,-0.0850793,-1.29766,1.13865,0.5595
+1h,2022_bear,out-of-sample,agent:core+sentiment,static_50,-0.0946939,-1.71065,1.61769,0.575
+1h,2022_bear,out-of-sample,agent:core+sentiment,cash,-1.54047,-3.35621,0.0907913,0.969
+1h,2022_bear,out-of-sample,agent:core+sentiment,agent:core,0.179062,-0.66988,1.13367,0.343
+1h,2023_bull,in-sample (development),agent:core+sentiment,buy_and_hold,-1.28374,-2.83506,0.0977367,0.9675
+1h,2023_bull,in-sample (development),agent:core+sentiment,sma200_filter,0.0651367,-1.00964,1.05084,0.458
+1h,2023_bull,in-sample (development),agent:core+sentiment,ema20_50_cross,-0.195775,-1.22634,0.943263,0.645
+1h,2023_bull,in-sample (development),agent:core+sentiment,static_50,-1.28374,-2.78869,0.0533152,0.972
+1h,2023_bull,in-sample (development),agent:core+sentiment,cash,1.14509,-1.43412,3.47335,0.1925
+1h,2023_bull,in-sample (development),agent:core+sentiment,agent:core,0.165693,-0.17044,0.607067,0.2335
+1h,2025_range,half in development,agent:core+sentiment,buy_and_hold,-2.05715,-3.6059,-0.551728,0.9965
+1h,2025_range,half in development,agent:core+sentiment,sma200_filter,-0.125443,-1.4706,1.23348,0.5665
+1h,2025_range,half in development,agent:core+sentiment,ema20_50_cross,-0.475202,-1.7592,0.800728,0.782
+1h,2025_range,half in development,agent:core+sentiment,static_50,-1.95132,-3.48039,-0.456561,0.995
+1h,2025_range,half in development,agent:core+sentiment,cash,-1.98873,-3.83974,-0.297365,0.987
+1h,2025_range,half in development,agent:core+sentiment,agent:core,0.557493,-0.184599,1.31055,0.0775
+1h,test,out-of-sample (test),agent:core+sentiment,buy_and_hold,-0.860811,-2.40819,0.799147,0.876
+1h,test,out-of-sample (test),agent:core+sentiment,sma200_filter,-0.155033,-1.50608,1.25167,0.5675
+1h,test,out-of-sample (test),agent:core+sentiment,ema20_50_cross,-0.747454,-1.88657,0.414936,0.892
+1h,test,out-of-sample (test),agent:core+sentiment,static_50,-0.971578,-2.53055,0.662561,0.8955
+1h,test,out-of-sample (test),agent:core+sentiment,cash,-1.16856,-3.21064,0.671266,0.883
+1h,test,out-of-sample (test),agent:core+sentiment,agent:core,0.353806,-0.557417,1.32765,0.242
+4h,2022_bear,out-of-sample,agent:hybrid_lexicon,buy_and_hold,0.376966,-1.56195,2.45504,0.3565
+4h,2022_bear,out-of-sample,agent:hybrid_lexicon,sma200_filter,-0.176538,-1.37077,1.04099,0.6195
+4h,2022_bear,out-of-sample,agent:hybrid_lexicon,ema20_50_cross,0.532475,-0.740894,1.67793,0.188
+4h,2022_bear,out-of-sample,agent:hybrid_lexicon,static_50,0.497538,-1.43148,2.50982,0.304
+4h,2022_bear,out-of-sample,agent:hybrid_lexicon,cash,-1.015,-3.07722,0.87,0.845
+4h,2022_bear,out-of-sample,agent:hybrid_lexicon,agent:core,-0.328784,-1.45788,0.706837,0.7165
+4h,2023_bull,in-sample (development),agent:hybrid_lexicon,buy_and_hold,-0.760601,-2.12524,0.653012,0.867
+4h,2023_bull,in-sample (development),agent:hybrid_lexicon,sma200_filter,-0.456708,-1.35973,0.393643,0.8635
+4h,2023_bull,in-sample (development),agent:hybrid_lexicon,ema20_50_cross,-0.463997,-1.44589,0.546203,0.8085
+4h,2023_bull,in-sample (development),agent:hybrid_lexicon,static_50,-0.752648,-2.06404,0.6503,0.8725
+4h,2023_bull,in-sample (development),agent:hybrid_lexicon,cash,1.68002,-0.50808,3.73594,0.0725
+4h,2023_bull,in-sample (development),agent:hybrid_lexicon,agent:core,-0.0484012,-0.132421,0.0421508,0.88
+4h,2025_range,half in development,agent:hybrid_lexicon,buy_and_hold,0.579721,-0.93408,2.07498,0.245
+4h,2025_range,half in development,agent:hybrid_lexicon,sma200_filter,1.06083,0.103575,2.17919,0.0155
+4h,2025_range,half in development,agent:hybrid_lexicon,ema20_50_cross,0.970625,-0.180591,2.19778,0.049
+4h,2025_range,half in development,agent:hybrid_lexicon,static_50,0.685121,-0.811418,2.20323,0.1975
+4h,2025_range,half in development,agent:hybrid_lexicon,cash,0.664267,-1.23102,2.45191,0.262
+4h,2025_range,half in development,agent:hybrid_lexicon,agent:core,-0.288706,-0.742317,0.0930913,0.8995
+4h,test,out-of-sample (test),agent:hybrid_lexicon,buy_and_hold,0.279522,-1.47794,2.00278,0.3855
+4h,test,out-of-sample (test),agent:hybrid_lexicon,sma200_filter,-0.258136,-1.28894,0.85781,0.6715
+4h,test,out-of-sample (test),agent:hybrid_lexicon,ema20_50_cross,-0.293872,-1.56402,0.973995,0.6525
+4h,test,out-of-sample (test),agent:hybrid_lexicon,static_50,0.163658,-1.51553,1.84612,0.432
+4h,test,out-of-sample (test),agent:hybrid_lexicon,cash,-0.0360021,-2.0415,1.93246,0.521
+4h,test,out-of-sample (test),agent:hybrid_lexicon,agent:core,-0.361344,-1.09651,0.358882,0.835
+1D,2022_bear,out-of-sample,agent:core,buy_and_hold,-0.522729,-2.38133,1.67424,0.6885
+1D,2022_bear,out-of-sample,agent:core,sma200_filter,-1.86535,-3.38839,0.253719,0.9565
+1D,2022_bear,out-of-sample,agent:core,ema20_50_cross,0.0415694,-1.16285,0.888781,0.479
+1D,2022_bear,out-of-sample,agent:core,static_50,-0.440274,-2.25475,1.72378,0.666
+1D,2022_bear,out-of-sample,agent:core,cash,-1.86535,-3.38839,0.253719,0.9565
+1D,2023_bull,in-sample (development),agent:core,buy_and_hold,-0.823332,-1.67716,-0.0300595,0.981
+1D,2023_bull,in-sample (development),agent:core,sma200_filter,-0.293786,-1.27991,0.623603,0.7495
+1D,2023_bull,in-sample (development),agent:core,ema20_50_cross,-0.194927,-1.23406,0.90619,0.649
+1D,2023_bull,in-sample (development),agent:core,static_50,-0.724737,-1.61412,0.0820112,0.959
+1D,2023_bull,in-sample (development),agent:core,cash,1.5132,-0.595334,3.43295,0.0725
+1D,2025_range,half in development,agent:core,buy_and_hold,0.625049,-0.757296,2.08112,0.208
+1D,2025_range,half in development,agent:core,sma200_filter,1.07049,-0.203986,2.37404,0.0495
+1D,2025_range,half in development,agent:core,ema20_50_cross,0.582613,-0.277454,1.54131,0.108
+1D,2025_range,half in development,agent:core,static_50,0.722501,-0.616762,2.15322,0.1605
+1D,2025_range,half in development,agent:core,cash,0.647359,-1.19173,2.38221,0.257
+1D,test,out-of-sample (test),agent:core,buy_and_hold,0.518704,-1.06986,2.35594,0.255
+1D,test,out-of-sample (test),agent:core,sma200_filter,-0.224185,-1.41737,1.20101,0.6095
+1D,test,out-of-sample (test),agent:core,ema20_50_cross,0.634351,-0.312269,1.79722,0.0965
+1D,test,out-of-sample (test),agent:core,static_50,0.434028,-1.08931,2.16869,0.276
+1D,test,out-of-sample (test),agent:core,cash,0.182866,-1.48049,1.94379,0.4015
