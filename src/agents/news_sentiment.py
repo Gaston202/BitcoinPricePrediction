@@ -217,10 +217,26 @@ class LLMScorer:
         }
         answer = self._post(payload)
         text = answer["choices"][0]["message"]["content"] or ""
-        rated = parse_llm_json(text, len(days))
         time.sleep(self.pause)
+        try:
+            rated = parse_llm_json(text, len(days))
+        except ValueError:  # malformed JSON (json.JSONDecodeError is a ValueError)
+            return self._rescore_in_halves(days)
         return [{"day": day, "n_headlines": len(titles), **r}
                 for (day, titles), r in zip(days.items(), rated)]
+
+    def _rescore_in_halves(self, days: dict[pd.Timestamp, list[str]]) -> list[dict]:
+        """A long answer occasionally comes back as broken JSON: ask again for each half.
+        A single day that still fails is kept as 'not rated' (confidence 0: the analyst abstains)."""
+        if len(days) == 1:
+            (day, titles), = days.items()
+            logger.warning("Unreadable LLM answer for %s; day left unrated", day.date())
+            return [{"day": day, "n_headlines": len(titles), "score": 0.0, "confidence": 0.0,
+                     "reason": "unreadable model answer"}]
+        items = list(days.items())
+        mid = len(items) // 2
+        logger.info("Unreadable LLM answer for %d days; retrying in two halves", len(items))
+        return self.score_days(dict(items[:mid])) + self.score_days(dict(items[mid:]))
 
 
 # --------------------------------------------------------------------------- batch scoring

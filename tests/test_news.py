@@ -124,6 +124,18 @@ def test_llm_prompt_hides_the_dates_and_parses_the_answer():
     assert [r["day"] for r in rows] == list(days) and rows[0]["score"] == 0.5
 
 
+def test_broken_json_is_rescored_in_halves_and_a_hopeless_day_left_unrated():
+    broken = FakeResponse(200, {"choices": [{"message": {"content": '{"days": [{"day": 1, "score": 0.5 "x"'}}]})
+    session = FakeSession([broken, _llm_answer(1), broken])
+    scorer = ns.LLMScorer(api_key="test", session=session, pause=0)
+    days = {DAY: ["Bitcoin rallies"], DAY + pd.Timedelta("1D"): ["Bitcoin falls"]}
+    rows = scorer.score_days(days)
+    assert [r["day"] for r in rows] == list(days)
+    assert rows[0]["score"] == 0.5 and rows[0]["confidence"] == 0.8      # first half re-asked alone
+    assert rows[1]["confidence"] == 0.0 and "unreadable" in rows[1]["reason"]
+    assert len(session.payloads) == 3
+
+
 def test_llm_scorer_needs_a_key(monkeypatch, tmp_path):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.setattr(ns, "load_api_key", lambda: None)
